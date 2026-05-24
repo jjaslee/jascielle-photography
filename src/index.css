@@ -1,0 +1,216 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 247 247 245;
+  --fg: 10 10 10;
+  --muted: 92 92 92;
+  --border: 229 229 229;
+  --chrome-rgb: 247, 247, 245;
+  --chrome-invert-rgb: 10, 10, 10;
+  --chrome-outline: rgba(10, 10, 10, 0.7);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: 10 10 10;
+  --fg: 245 245 243;
+  --muted: 154 154 154;
+  --border: 42 42 42;
+  --chrome-rgb: 10, 10, 10;
+  --chrome-invert-rgb: 245, 245, 243;
+  --chrome-outline: rgba(245, 245, 243, 0.92);
+  color-scheme: dark;
+}
+
+.chrome-outline {
+  border-color: var(--chrome-outline);
+}
+
+.chrome-invert-bg {
+  background-color: rgb(var(--chrome-invert-rgb));
+}
+
+.chrome-solid-bg {
+  background-color: rgb(var(--chrome-rgb));
+}
+
+html {
+  scroll-behavior: auto;
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+body {
+  @apply bg-canvas text-ink font-sans antialiased;
+}
+
+.theme-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  animation: theme-veil 580ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.theme-transition-overlay--dim {
+  background-color: rgb(10, 10, 10);
+}
+
+.theme-transition-overlay--lighten {
+  background-color: rgb(247, 247, 245);
+}
+
+@keyframes theme-veil {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  38% {
+    opacity: 0.18;
+  }
+}
+
+.dark .cursor-spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  pointer-events: none;
+  --spotlight-x: 50%;
+  --spotlight-y: 50%;
+  background: radial-gradient(
+    560px circle at var(--spotlight-x) var(--spotlight-y),
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.025) 38%,
+    transparent 68%
+  );
+}
+
+.spotlight-zone__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --spotlight-x: 50%;
+  --spotlight-y: 50%;
+  background: radial-gradient(
+    520px circle at var(--spotlight-x) var(--spotlight-y),
+    rgba(255, 255, 255, 0.09) 0%,
+    rgba(255, 255, 255, 0.03) 40%,
+    transparent 70%
+  );
+}
+
+.protected-image,
+.gallery-protected img {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  .section-pad {
+    @apply px-6 md:px-12 lg:px-20;
+  }
+
+  .gallery-section {
+    @apply px-4 md:px-8 lg:px-12 pb-24 md:pb-32 mx-auto w-full max-w-[92rem];
+  }
+
+  .gallery-grid {
+    --gallery-gap: 1.25rem;
+    gap: var(--gallery-gap);
+    @apply gallery-protected grid grid-cols-1 items-stretch sm:grid-cols-2 xl:grid-cols-3;
+  }
+
+  @screen md {
+    .gallery-grid {
+      --gallery-gap: 1.75rem;
+    }
+  }
+
+  @screen lg {
+    .gallery-grid {
+      --gallery-gap: 2rem;
+    }
+  }
+
+  .gallery-cell-pair {
+    gap: var(--gallery-gap);
+    @apply flex w-full flex-col aspect-[3/4] [content-visibility:auto];
+  }
+
+  .heading-serif {
+    @apply font-serif font-light tracking-tight text-ink;
+  }
+
+  .link-underline {
+    @apply relative text-ink/80 hover:text-ink transition-colors duration-300;
+  }
+
+  .link-underline::after {
+    content: '';
+    @apply absolute left-0 -bottom-0.5 h-px w-0 bg-ink transition-all duration-500 ease-elegant;
+  }
+
+  .link-underline:hover::after {
+    @apply w-full;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm tracking-wide
+      bg-ink text-canvas border border-ink
+      transition-all duration-500 ease-elegant
+      hover:opacity-85;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm tracking-wide
+      border border-ink text-ink bg-transparent
+      transition-colors duration-slower ease-elegant
+      hover:bg-ink hover:text-canvas;
+  }
+
+  .btn-outline-light {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm tracking-wide
+      border border-canvas/40 text-canvas bg-transparent
+      transition-colors duration-slower ease-elegant
+      hover:bg-canvas hover:text-ink;
+  }
+
+  .filter-pill {
+    @apply px-4 py-1.5 text-sm text-muted border border-line rounded-full
+      transition-all duration-500 ease-elegant;
+  }
+
+  .filter-pill-active {
+    @apply bg-ink text-canvas border-ink;
+  }
+}
