@@ -43,7 +43,7 @@ export const portraitImages = [
   },
   {
     src: '/images/portraits/IMG_3853.jpg',
-    alt: 'Graduate portrait in campus greenery',
+    alt: 'Graduate in cap and gown on campus',
     session: 'grad',
     theme: 'bright',
   },
@@ -58,6 +58,11 @@ export const eventImages = [
   {
     src: '/images/events/IMG_3619.jpg',
     alt: 'Archers aiming compound bows at competition',
+    category: 'sports',
+  },
+  {
+    src: '/images/events/IMG_3556.jpg',
+    alt: 'Archer with compound bow at full draw',
     category: 'sports',
   },
   {
