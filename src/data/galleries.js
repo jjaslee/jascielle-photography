@@ -54,6 +54,18 @@ export const portraitImages = [
     theme: 'bright',
   },
   {
+    src: '/images/portraits/IMG_2624.jpg',
+    alt: 'Grad portrait by a wooded stream',
+    session: 'grad',
+    theme: 'bright',
+  },
+  {
+    src: '/images/portraits/IMG_2821.jpg',
+    alt: 'Grad portrait on a sunlit lawn',
+    session: 'grad',
+    theme: 'bright',
+  },
+  {
     src: '/images/portraits/IMG_3847.jpg',
     alt: 'Graduation portrait with faculty on campus',
     session: 'grad',
