@@ -42,6 +42,12 @@ export const portraitImages = [
     theme: 'bright',
   },
   {
+    src: '/images/portraits/IMG_1995.jpg',
+    alt: 'Grad portrait on rose garden stone path',
+    session: 'grad',
+    theme: 'bright',
+  },
+  {
     src: '/images/portraits/IMG_3853.jpg',
     alt: 'Graduate in cap and gown on campus',
     session: 'grad',
