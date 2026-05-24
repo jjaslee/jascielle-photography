@@ -5,8 +5,20 @@ import ScrollReveal from '../components/ScrollReveal'
 import { protectedGalleryHandlers } from '../utils/imageProtection'
 import { services, sessionAddons } from '../data/galleries'
 
+const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT
+const BOOKING_EMAIL = 'jascielle.photos@gmail.com'
+
+const sessionLabels = {
+  grad: 'Grad Portrait ($140)',
+  portrait: 'Portrait / Creative Session ($100)',
+  event: 'Event Coverage ($250)',
+}
+
 export default function Book() {
   const [submitted, setSubmitted] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+  const [error, setError] = useState(null)
+  const [honeypot, setHoneypot] = useState('')
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -19,14 +31,46 @@ export default function Book() {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
   }
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
-    const subject = encodeURIComponent(`Jascielle Photography: ${form.session}`)
-    const body = encodeURIComponent(
-      `Name: ${form.name}\nEmail: ${form.email}\nSession: ${form.session}\nPreferred date: ${form.date || 'Flexible'}\n\n${form.message}`
-    )
-    window.location.href = `mailto:jascielle.photos@gmail.com?subject=${subject}&body=${body}`
-    setSubmitted(true)
+    setError(null)
+
+    if (honeypot) {
+      setSubmitted(true)
+      return
+    }
+
+    if (!FORMSPREE_ENDPOINT) {
+      setError('Booking form is not configured yet. Please email us directly.')
+      return
+    }
+
+    setIsSending(true)
+    try {
+      const res = await fetch(FORMSPREE_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          session: sessionLabels[form.session] ?? form.session,
+          preferred_date: form.date || 'Flexible',
+          message: form.message.trim(),
+          _subject: `Jascielle Photography: ${form.session}`,
+        }),
+      })
+
+      if (!res.ok) throw new Error('Request failed')
+
+      setSubmitted(true)
+    } catch {
+      setError('Could not send your inquiry. Please try again or email us directly.')
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
@@ -72,15 +116,25 @@ export default function Book() {
               <div className="border border-line p-8 md:p-10">
                 <p className="font-serif text-2xl font-light text-ink">Thank you.</p>
                 <p className="text-muted mt-4 text-sm leading-relaxed">
-                  Your email client should have opened with your message. If it didn&apos;t, email{' '}
-                  <a href="mailto:jascielle.photos@gmail.com" className="text-ink underline">
-                    jascielle.photos@gmail.com
-                  </a>{' '}
-                  directly.
+                  Your inquiry was sent to{' '}
+                  <a href={`mailto:${BOOKING_EMAIL}`} className="text-ink underline">
+                    {BOOKING_EMAIL}
+                  </a>
+                  . I&apos;ll reply within 48 hours.
                 </p>
               </div>
             ) : (
               <form onSubmit={onSubmit} className="space-y-8">
+                <input
+                  type="text"
+                  name="_gotcha"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  className="sr-only"
+                  aria-hidden
+                />
                 <div>
                   <label htmlFor="name" className="block text-xs tracking-widest uppercase text-muted mb-2">
                     Name
@@ -151,8 +205,27 @@ export default function Book() {
                     className="w-full bg-transparent border-b border-line py-3 text-ink focus:outline-none focus:border-ink resize-none transition-colors"
                   />
                 </div>
-                <button type="submit" className="btn-primary w-full md:w-auto">
-                  Send inquiry
+                {error ? (
+                  <p className="text-sm text-ink/80 leading-relaxed" role="alert">
+                    {error}{' '}
+                    <a href={`mailto:${BOOKING_EMAIL}`} className="underline">
+                      {BOOKING_EMAIL}
+                    </a>
+                  </p>
+                ) : null}
+                <p className="text-xs text-muted leading-relaxed">
+                  Inquiries go to{' '}
+                  <a href={`mailto:${BOOKING_EMAIL}`} className="text-ink underline">
+                    {BOOKING_EMAIL}
+                  </a>
+                  .
+                </p>
+                <button
+                  type="submit"
+                  className="btn-primary w-full md:w-auto"
+                  disabled={isSending}
+                >
+                  {isSending ? 'Sending…' : 'Send inquiry'}
                 </button>
               </form>
             )}
