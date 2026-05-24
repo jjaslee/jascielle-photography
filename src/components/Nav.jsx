@@ -11,29 +11,15 @@ const links = [
 ]
 
 export default function Nav() {
-  const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
 
   useEffect(() => {
     setMenuOpen(false)
   }, [location.pathname])
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-elegant ${
-        scrolled
-          ? 'bg-canvas/75 backdrop-blur-md border-b border-line'
-          : 'bg-transparent'
-      }`}
-    >
+    <header className="fixed top-0 left-0 right-0 z-50 bg-canvas/75 backdrop-blur-md border-b border-line">
       <nav className="section-pad flex items-center justify-between h-16 md:h-20">
         <Link to="/" className="block shrink-0" aria-label="Jascielle Photography, home">
           <Logo className="h-9 md:h-11 w-auto" />

@@ -17,7 +17,7 @@ const heroMoodyGradImages = portraitImages.filter(
 export default function Home() {
   return (
     <>
-      <section className="relative min-h-[100svh] flex flex-col justify-center section-pad pt-24 pb-20 overflow-hidden">
+      <section className="relative min-h-[100svh] flex flex-col justify-center section-pad pt-28 pb-20 lg:pt-24 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           <div className="absolute -top-1/4 -right-1/4 w-[70vw] h-[70vw] rounded-full bg-ink/[0.03] dark:bg-ink/10 blur-3xl" />
         </div>
@@ -27,13 +27,13 @@ export default function Home() {
         />
 
         <div className="relative z-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-7xl mx-auto w-full">
-          <ScrollReveal className="order-2 lg:order-1">
+          <ScrollReveal className="order-1 flex flex-col items-center text-center pt-8 lg:pt-0 lg:items-start lg:text-left">
             <h1 className="sr-only">Jascielle Photography</h1>
             <Logo className="h-28 sm:h-32 md:h-40 w-auto max-w-[min(100%,320px)]" />
             <p className="text-muted text-sm md:text-base mt-8 tracking-wide">
               Grad · Portrait · Event
             </p>
-            <div className="flex flex-wrap gap-4 mt-10">
+            <div className="flex flex-wrap gap-4 mt-10 justify-center lg:justify-start">
               <Link to="/portraits" className="btn-outline">
                 View work
               </Link>
@@ -43,7 +43,7 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
-          <div className="order-1 lg:order-2 flex justify-center lg:justify-end">
+          <div className="order-2 flex justify-center lg:justify-end">
             <div
               className="gallery-protected w-full max-w-md aspect-[4/5] border border-line overflow-hidden"
               {...protectedGalleryHandlers}
@@ -69,7 +69,7 @@ export default function Home() {
                   <ProtectedImage
                     src={cat.cover}
                     alt={cat.title}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover scale-100 transition-transform duration-slow ease-elegant group-hover:scale-[1.06]"
                   />
                 </div>
                 <h2 className="font-serif text-2xl md:text-3xl font-light text-ink">{cat.title}</h2>
@@ -80,7 +80,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section-pad py-24 md:py-32">
+      <section className="section-pad py-24 md:py-32 border-t border-line">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
           <ScrollReveal>
             <div
@@ -103,8 +103,17 @@ export default function Home() {
               From grad portraits to club events: relaxed sessions, thoughtful edits, and
               images that feel like you.
             </p>
-            <Link to="/about" className="link-underline inline-block mt-8 text-sm tracking-wide">
-              Meet Jasmine
+            <Link
+              to="/about"
+              className="link-underline group inline-flex items-center gap-1.5 mt-8 text-sm tracking-wide"
+            >
+              <span>Meet Jasmine</span>
+              <span
+                className="text-xs transition-transform duration-500 ease-elegant group-hover:translate-x-0.5"
+                aria-hidden="true"
+              >
+                →
+              </span>
             </Link>
           </ScrollReveal>
         </div>
