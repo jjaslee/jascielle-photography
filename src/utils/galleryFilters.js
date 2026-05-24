@@ -1,6 +1,5 @@
 const categoryLabels = {
   sports: 'Sports',
-  animals: 'Animals',
   nature: 'Nature',
   travel: 'Travel',
 }

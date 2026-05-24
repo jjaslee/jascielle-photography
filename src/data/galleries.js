@@ -18,22 +18,10 @@ export const portraitImages = [
     theme: 'moody',
   },
   {
-    src: '/images/portraits/IMG_4048.jpg',
-    alt: 'Grad portrait at Wheeler Hall',
-    session: 'grad',
-    theme: 'moody',
-  },
-  {
     src: '/images/portraits/IMG_4161.jpg',
     alt: 'Grad portrait with Campanile, UC Berkeley',
     session: 'grad',
     theme: 'moody',
-  },
-  {
-    src: '/images/portraits/IMG_2450.jpg',
-    alt: 'Grad portrait in garden courtyard',
-    session: 'grad',
-    theme: 'bright',
   },
   {
     src: '/images/portraits/IMG_2336.jpg',
@@ -54,24 +42,6 @@ export const portraitImages = [
     theme: 'bright',
   },
   {
-    src: '/images/portraits/IMG_2624.jpg',
-    alt: 'Grad portrait by a wooded stream',
-    session: 'grad',
-    theme: 'bright',
-  },
-  {
-    src: '/images/portraits/IMG_2821.jpg',
-    alt: 'Grad portrait on a sunlit lawn',
-    session: 'grad',
-    theme: 'bright',
-  },
-  {
-    src: '/images/portraits/IMG_3847.jpg',
-    alt: 'Graduation portrait with faculty on campus',
-    session: 'grad',
-    theme: 'bright',
-  },
-  {
     src: '/images/portraits/IMG_3853.jpg',
     alt: 'Graduate portrait in campus greenery',
     session: 'grad',
@@ -82,17 +52,22 @@ export const portraitImages = [
 export const eventImages = [
   {
     src: '/images/events/IMG_3707.jpg',
-    alt: 'Archer aiming at outdoor range',
+    alt: 'Archer with recurve bow at full draw',
     category: 'sports',
   },
   {
     src: '/images/events/IMG_3619.jpg',
-    alt: 'Archery competition on the field',
+    alt: 'Archers aiming compound bows at competition',
     category: 'sports',
   },
   {
-    src: '/images/events/IMG_3768.jpg',
-    alt: 'Archer with compound bow at targets',
+    src: '/images/events/IMG_3560.jpg',
+    alt: 'Row of archery targets on an outdoor range',
+    category: 'sports',
+  },
+  {
+    src: '/images/events/IMG_3696.jpg',
+    alt: 'Archer drawing a recurve bow on the field',
     category: 'sports',
   },
 ]
@@ -106,6 +81,51 @@ export const placeImages = [
   {
     src: '/images/places/IMG_4164.jpg',
     alt: 'Shinsekai street, Osaka',
+    category: 'travel',
+  },
+  {
+    src: '/images/places/IMG_3827.jpg',
+    alt: 'River weir and traditional buildings, Arashiyama',
+    category: 'travel',
+  },
+  {
+    src: '/images/places/IMG_3812.jpg',
+    alt: 'Togetsukyo Bridge over the Katsura River',
+    category: 'travel',
+  },
+  {
+    src: '/images/places/IMG_4493.jpg',
+    alt: 'Deer in Nara Park with temple and grassy hill',
+    category: 'travel',
+  },
+  {
+    src: '/images/places/IMG_4013.jpg',
+    alt: 'Keihan train at a station crossing',
+    category: 'travel',
+  },
+  {
+    src: '/images/places/IMG_3251.jpg',
+    alt: 'Hong Kong skyline at night from the peak',
+    category: 'travel',
+  },
+  {
+    src: '/images/places/4S7A2211.jpg',
+    alt: 'Tsing Ma Bridge lit at night over the harbour',
+    category: 'travel',
+  },
+  {
+    src: '/images/places/IMG_8908.jpg',
+    alt: 'Traditional garden with bonsai trees and high-rises',
+    category: 'travel',
+  },
+  {
+    src: '/images/places/IMG_8912.jpg',
+    alt: 'Wooden pavilion and pond, Chi Lin Nunnery',
+    category: 'travel',
+  },
+  {
+    src: '/images/places/IMG_9000.jpg',
+    alt: 'Harbour town and fishing boats under sunbeams',
     category: 'travel',
   },
   {
@@ -124,8 +144,18 @@ export const placeImages = [
     category: 'travel',
   },
   {
+    src: '/images/places/IMG_8949.jpg',
+    alt: 'Colourful dinghies moored in the harbour',
+    category: 'travel',
+  },
+  {
     src: '/images/places/IMG_9446.jpg',
     alt: 'Weathered storefront with outdoor seating',
+    category: 'travel',
+  },
+  {
+    src: '/images/places/IMG_9197.jpg',
+    alt: 'Evening patio with Tiffany lamps against brick',
     category: 'travel',
   },
   {
@@ -156,32 +186,32 @@ export const placeImages = [
   {
     src: '/images/places/IMG_4021.jpg',
     alt: 'Falcon on perch',
-    category: 'animals',
+    category: 'nature',
   },
   {
     src: '/images/places/IMG_4139.jpg',
     alt: 'Jaguar in dappled light',
-    category: 'animals',
+    category: 'nature',
   },
   {
     src: '/images/places/IMG_4109.jpg',
     alt: 'Two rhinoceroses in enclosure',
-    category: 'animals',
+    category: 'nature',
   },
   {
     src: '/images/places/IMG_8861.jpg',
     alt: 'Red-whiskered bulbul on wet rock',
-    category: 'animals',
+    category: 'nature',
   },
   {
     src: '/images/places/IMG_4020.jpg',
     alt: 'Owl standing on ground',
-    category: 'animals',
+    category: 'nature',
   },
   {
     src: '/images/places/IMG_4086.jpg',
     alt: 'Birds gathered at the water',
-    category: 'animals',
+    category: 'nature',
   },
   {
     src: '/images/places/IMG_3917.jpg',
@@ -203,12 +233,16 @@ export const placeImages = [
     alt: 'Waterfall over dark rock',
     category: 'nature',
   },
+  {
+    src: '/images/places/IMG_2396.jpg',
+    alt: 'Forest bridge over a stream with mossy boulders',
+    category: 'nature',
+  },
 ]
 
 /** Shown on Places page; add images with matching `category` as you grow the gallery. */
 export const placeFilterOptions = [
   { id: 'all', label: 'All' },
-  { id: 'animals', label: 'Animals' },
   { id: 'nature', label: 'Nature' },
   { id: 'travel', label: 'Travel' },
 ]
