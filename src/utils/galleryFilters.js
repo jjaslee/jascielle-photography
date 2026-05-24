@@ -24,6 +24,23 @@ export function filterByCategory(images, active) {
   return images.filter((img) => img.category === active)
 }
 
+const placeThemeLabels = {
+  night: 'Night & glow',
+  water: 'Water & sky',
+  green: 'Green & quiet',
+  street: 'Street & scene',
+  wildlife: 'Wildlife',
+}
+
+export function labelForPlaceTheme(id) {
+  return placeThemeLabels[id] ?? labelForCategory(id)
+}
+
+export function filterByPlaceTheme(images, active) {
+  if (active === 'all') return images
+  return images.filter((img) => img.theme === active)
+}
+
 export const PORTRAIT_FILTER_MIN_COUNT = 18
 
 const sessionLabels = {

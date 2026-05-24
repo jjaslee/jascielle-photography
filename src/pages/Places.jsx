@@ -3,18 +3,18 @@ import GalleryGrid from '../components/GalleryGrid'
 import GalleryFilters from '../components/GalleryFilters'
 import PageHeader from '../components/PageHeader'
 import { placeFilterOptions, placeImages } from '../data/galleries'
-import { filterByCategory } from '../utils/galleryFilters'
+import { filterByPlaceTheme } from '../utils/galleryFilters'
 
 export default function Places() {
   const [active, setActive] = useState('all')
 
-  const filtered = useMemo(() => filterByCategory(placeImages, active), [active])
+  const filtered = useMemo(() => filterByPlaceTheme(placeImages, active), [active])
 
   return (
     <>
       <PageHeader
         title="Places & light"
-        subtitle="Street, nature, and quieter frames. Work that sits outside sessions, but shapes how I see."
+        subtitle="Night light, streets, water, and quieter frames. Work outside sessions that shapes how I see."
       >
         <GalleryFilters filters={placeFilterOptions} active={active} onChange={setActive} />
       </PageHeader>

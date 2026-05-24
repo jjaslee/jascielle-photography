@@ -72,179 +72,263 @@ export const eventImages = [
   },
 ]
 
+/** Order = curated “All” scroll (night → street → water → green → wildlife). */
 export const placeImages = [
-  {
-    src: '/images/places/IMG_4171.jpg',
-    alt: 'Osaka Shinsekai intersection from above',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_4164.jpg',
-    alt: 'Shinsekai street, Osaka',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_3827.jpg',
-    alt: 'River weir and traditional buildings, Arashiyama',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_3812.jpg',
-    alt: 'Togetsukyo Bridge over the Katsura River',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_4493.jpg',
-    alt: 'Deer in Nara Park with temple and grassy hill',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_4013.jpg',
-    alt: 'Keihan train at a station crossing',
-    category: 'travel',
-  },
   {
     src: '/images/places/IMG_3251.jpg',
     alt: 'Hong Kong skyline at night from the peak',
-    category: 'travel',
+    theme: 'night',
   },
   {
     src: '/images/places/4S7A2211.jpg',
     alt: 'Tsing Ma Bridge lit at night over the harbour',
-    category: 'travel',
+    theme: 'night',
   },
   {
-    src: '/images/places/IMG_8908.jpg',
-    alt: 'Traditional garden with bonsai trees and high-rises',
-    category: 'travel',
+    src: '/images/places/IMG_0935.jpg',
+    alt: 'Night street with lanterns and a passing bus',
+    theme: 'night',
   },
   {
-    src: '/images/places/IMG_8912.jpg',
-    alt: 'Wooden pavilion and pond, Chi Lin Nunnery',
-    category: 'travel',
+    src: '/images/places/IMG_9363.jpg',
+    alt: 'Miniature tram lit at night, tilt-shift',
+    theme: 'night',
   },
   {
-    src: '/images/places/IMG_9000.jpg',
-    alt: 'Harbour town and fishing boats under sunbeams',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_9437.jpg',
-    alt: 'Hills and high-rise above a green field',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_9443.jpg',
-    alt: 'Car parked in a rural roadside stop',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_8930.jpg',
-    alt: 'Boats on a calm coastal shore',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_8949.jpg',
-    alt: 'Colourful dinghies moored in the harbour',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_9446.jpg',
-    alt: 'Weathered storefront with outdoor seating',
-    category: 'travel',
+    src: '/images/places/IMG_9388.jpg',
+    alt: 'Colourful craft stall under a lit awning',
+    theme: 'night',
   },
   {
     src: '/images/places/IMG_9197.jpg',
     alt: 'Evening patio with Tiffany lamps against brick',
-    category: 'travel',
+    theme: 'night',
   },
   {
-    src: '/images/places/IMG_9439.jpg',
-    alt: 'Birds on power lines under cloudy sky',
-    category: 'travel',
+    src: '/images/places/IMG_1782.jpg',
+    alt: 'Neon signs in a crowded market at night',
+    theme: 'night',
+  },
+  {
+    src: '/images/places/IMG_3134.jpg',
+    alt: 'Golden Gate Bridge at blue hour with city lights',
+    theme: 'night',
+  },
+  {
+    src: '/images/places/IMG_3535.jpg',
+    alt: 'Silhouette at a harbour railing at twilight',
+    theme: 'night',
+  },
+  {
+    src: '/images/places/IMG_4171.jpg',
+    alt: 'Osaka Shinsekai intersection from above',
+    theme: 'street',
+  },
+  {
+    src: '/images/places/IMG_4164.jpg',
+    alt: 'Shinsekai street, Osaka',
+    theme: 'street',
+  },
+  {
+    src: '/images/places/IMG_4013.jpg',
+    alt: 'Keihan train at a station crossing',
+    theme: 'street',
+  },
+  {
+    src: '/images/places/IMG_0346.jpg',
+    alt: 'Teal bicycle in a graffiti-lined alley',
+    theme: 'street',
+  },
+  {
+    src: '/images/places/IMG_0857.jpg',
+    alt: 'Curved road between ivy hillside and forest',
+    theme: 'street',
+  },
+  {
+    src: '/images/places/IMG_9446.jpg',
+    alt: 'Weathered storefront with outdoor seating',
+    theme: 'street',
   },
   {
     src: '/images/places/IMG_9083.jpg',
     alt: 'Misty roadside shop in the hills',
-    category: 'travel',
+    theme: 'street',
+  },
+  {
+    src: '/images/places/IMG_9443.jpg',
+    alt: 'Car parked in a rural roadside stop',
+    theme: 'street',
+  },
+  {
+    src: '/images/places/IMG_9338.jpg',
+    alt: 'Hong Kong skyline and boats across the harbour',
+    theme: 'water',
+  },
+  {
+    src: '/images/places/IMG_9000.jpg',
+    alt: 'Harbour town and fishing boats under sunbeams',
+    theme: 'water',
+  },
+  {
+    src: '/images/places/IMG_9347.jpg',
+    alt: 'Stilt houses and boats along a hillside waterfront',
+    theme: 'water',
+  },
+  {
+    src: '/images/places/IMG_8930.jpg',
+    alt: 'Boats on a calm coastal shore',
+    theme: 'water',
+  },
+  {
+    src: '/images/places/IMG_8949.jpg',
+    alt: 'Colourful dinghies moored in the harbour',
+    theme: 'water',
+  },
+  {
+    src: '/images/places/IMG_9244.jpg',
+    alt: 'Boat towing skiffs along a rocky hillside coast',
+    theme: 'water',
+  },
+  {
+    src: '/images/places/IMG_9288.jpg',
+    alt: 'Boat crossing a bay ringed by green hills',
+    theme: 'water',
+  },
+  {
+    src: '/images/places/IMG_3812.jpg',
+    alt: 'Togetsukyo Bridge over the Katsura River',
+    theme: 'water',
+  },
+  {
+    src: '/images/places/IMG_3827.jpg',
+    alt: 'River weir and traditional buildings, Arashiyama',
+    theme: 'water',
   },
   {
     src: '/images/places/IMG_1072.jpg',
     alt: 'Lighthouse on a coastal breakwater',
-    category: 'travel',
-  },
-  {
-    src: '/images/places/IMG_1308.jpg',
-    alt: 'Parasailing over the ocean',
-    category: 'travel',
+    theme: 'water',
   },
   {
     src: '/images/places/IMG_1513.jpg',
     alt: 'Tropical beach and mountain coastline',
-    category: 'travel',
+    theme: 'water',
   },
   {
-    src: '/images/places/IMG_4021.jpg',
-    alt: 'Falcon on perch',
-    category: 'nature',
+    src: '/images/places/IMG_1423.jpg',
+    alt: 'Golden hour footprints along a tropical beach',
+    theme: 'water',
   },
   {
-    src: '/images/places/IMG_4139.jpg',
-    alt: 'Jaguar in dappled light',
-    category: 'nature',
+    src: '/images/places/IMG_1156.jpg',
+    alt: 'Turquoise coast and villas from above',
+    theme: 'water',
   },
   {
-    src: '/images/places/IMG_4109.jpg',
-    alt: 'Two rhinoceroses in enclosure',
-    category: 'nature',
+    src: '/images/places/IMG_1308.jpg',
+    alt: 'Parasailing over the ocean',
+    theme: 'water',
   },
   {
-    src: '/images/places/IMG_8861.jpg',
-    alt: 'Red-whiskered bulbul on wet rock',
-    category: 'nature',
+    src: '/images/places/IMG_8908.jpg',
+    alt: 'Traditional garden with bonsai trees and high-rises',
+    theme: 'green',
   },
   {
-    src: '/images/places/IMG_4020.jpg',
-    alt: 'Owl standing on ground',
-    category: 'nature',
+    src: '/images/places/IMG_8912.jpg',
+    alt: 'Wooden pavilion and pond, Chi Lin Nunnery',
+    theme: 'green',
   },
   {
-    src: '/images/places/IMG_4086.jpg',
-    alt: 'Birds gathered at the water',
-    category: 'nature',
+    src: '/images/places/IMG_4493.jpg',
+    alt: 'Deer in Nara Park with temple and grassy hill',
+    theme: 'green',
   },
   {
-    src: '/images/places/IMG_3917.jpg',
-    alt: 'Riverbank structures among forest',
-    category: 'nature',
-  },
-  {
-    src: '/images/places/IMG_3908.jpg',
-    alt: 'Forest hillside and boat on the water',
-    category: 'nature',
+    src: '/images/places/IMG_9437.jpg',
+    alt: 'Hills and high-rise above a green field',
+    theme: 'green',
   },
   {
     src: '/images/places/IMG_3916.jpg',
     alt: 'Turquoise river and wooded path',
-    category: 'nature',
+    theme: 'green',
+  },
+  {
+    src: '/images/places/IMG_1925.jpg',
+    alt: 'Sunlit path through a green forest',
+    theme: 'green',
+  },
+  {
+    src: '/images/places/IMG_3917.jpg',
+    alt: 'Riverbank structures among forest',
+    theme: 'green',
+  },
+  {
+    src: '/images/places/IMG_3908.jpg',
+    alt: 'Forest hillside and boat on the water',
+    theme: 'green',
   },
   {
     src: '/images/places/IMG_9424.jpg',
     alt: 'Waterfall over dark rock',
-    category: 'nature',
+    theme: 'green',
   },
   {
     src: '/images/places/IMG_2396.jpg',
     alt: 'Forest bridge over a stream with mossy boulders',
-    category: 'nature',
+    theme: 'green',
+  },
+  {
+    src: '/images/places/IMG_9297.jpg',
+    alt: 'Tent campsite at the foot of a forested mountain',
+    theme: 'green',
+  },
+  {
+    src: '/images/places/IMG_9439.jpg',
+    alt: 'Birds on power lines under cloudy sky',
+    theme: 'green',
+  },
+  {
+    src: '/images/places/IMG_4021.jpg',
+    alt: 'Falcon on perch',
+    theme: 'wildlife',
+  },
+  {
+    src: '/images/places/IMG_4139.jpg',
+    alt: 'Jaguar in dappled light',
+    theme: 'wildlife',
+  },
+  {
+    src: '/images/places/IMG_4109.jpg',
+    alt: 'Two rhinoceroses in enclosure',
+    theme: 'wildlife',
+  },
+  {
+    src: '/images/places/IMG_8861.jpg',
+    alt: 'Red-whiskered bulbul on wet rock',
+    theme: 'wildlife',
+  },
+  {
+    src: '/images/places/IMG_4020.jpg',
+    alt: 'Owl standing on ground',
+    theme: 'wildlife',
+  },
+  {
+    src: '/images/places/IMG_4086.jpg',
+    alt: 'Birds gathered at the water',
+    theme: 'wildlife',
   },
 ]
 
-/** Shown on Places page; add images with matching `category` as you grow the gallery. */
+/** Shown on Places page; add images with matching `theme` as you grow the gallery. */
 export const placeFilterOptions = [
   { id: 'all', label: 'All' },
-  { id: 'nature', label: 'Nature' },
-  { id: 'travel', label: 'Travel' },
+  { id: 'night', label: 'Night & glow' },
+  { id: 'street', label: 'Street & scene' },
+  { id: 'water', label: 'Water & sky' },
+  { id: 'green', label: 'Green & quiet' },
+  { id: 'wildlife', label: 'Wildlife' },
 ]
 
 export const portfolioCategories = [
