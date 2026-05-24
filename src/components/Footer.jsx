@@ -90,8 +90,9 @@ export default function Footer() {
         </div>
 
         <div className="mt-14 pt-8 border-t border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-muted">
-          <p className="tracking-wide">
-            © {new Date().getFullYear()} Jascielle Photography
+          <p className="tracking-wide leading-relaxed max-w-md">
+            © {new Date().getFullYear()} Jascielle Photography. Images may not be used
+            without permission.
           </p>
           <a
             href="https://jasmineclee.vercel.app/"
