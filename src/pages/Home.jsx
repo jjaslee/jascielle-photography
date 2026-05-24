@@ -4,7 +4,15 @@ import ProtectedImage from '../components/ProtectedImage'
 import { protectedGalleryHandlers } from '../utils/imageProtection'
 import ScrollReveal from '../components/ScrollReveal'
 import SpotlightZone from '../components/SpotlightZone'
-import { portfolioCategories } from '../data/galleries'
+import HeroRotator from '../components/HeroRotator'
+import { portfolioCategories, portraitImages } from '../data/galleries'
+
+const heroMoodyGradImages = portraitImages.filter(
+  (img) =>
+    img.session === 'grad' &&
+    img.theme === 'moody' &&
+    img.src !== '/images/portraits/IMG_4262.jpg',
+)
 
 export default function Home() {
   return (
@@ -36,14 +44,11 @@ export default function Home() {
           </ScrollReveal>
 
           <div className="order-1 lg:order-2 flex justify-center lg:justify-end">
-            <div className="w-full max-w-md aspect-[4/5] border border-line overflow-hidden">
-              <ProtectedImage
-                src="/images/portraits/hero.jpg"
-                alt="Featured portrait"
-                loading="eager"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
+            <div
+              className="gallery-protected w-full max-w-md aspect-[4/5] border border-line overflow-hidden"
+              {...protectedGalleryHandlers}
+            >
+              <HeroRotator images={heroMoodyGradImages} />
             </div>
           </div>
         </div>
@@ -83,8 +88,8 @@ export default function Home() {
               {...protectedGalleryHandlers}
             >
               <ProtectedImage
-                src="/images/portraits/IMG_9437.jpg"
-                alt="Jasmine C. Lee"
+                src="/images/portraits/IMG_4262.jpg"
+                alt="Grad portrait on campus seal"
                 className="w-full h-full object-cover"
               />
             </div>

@@ -16,7 +16,7 @@ function GalleryTile({ image, className = '', onOpen }) {
         alt={image.alt}
         loading="lazy"
         decoding="async"
-        className="h-full w-full object-cover transition-opacity duration-500 ease-elegant group-hover:opacity-90"
+        className="h-full w-full object-cover scale-100 transition-transform duration-slow ease-elegant group-hover:scale-[1.06]"
       />
     </button>
   )

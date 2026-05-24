@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import PageHeader from '../components/PageHeader'
+import ProtectedImage from '../components/ProtectedImage'
 import ScrollReveal from '../components/ScrollReveal'
+import { protectedGalleryHandlers } from '../utils/imageProtection'
 import { services, sessionAddons } from '../data/galleries'
 
 export default function Book() {
@@ -35,7 +37,7 @@ export default function Book() {
       />
 
       <section className="section-pad pb-24 md:pb-32 max-w-7xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-16 lg:gap-24">
+        <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
           <div className="space-y-8">
             {services.map((s, i) => (
               <ScrollReveal key={s.id} delay={i * 80}>
@@ -156,6 +158,23 @@ export default function Book() {
             )}
           </ScrollReveal>
         </div>
+
+        <ScrollReveal delay={120}>
+          <div className="mt-20 md:mt-28 flex justify-center">
+            <div
+              className="w-full max-w-2xl aspect-[3/2] overflow-hidden gallery-protected"
+              {...protectedGalleryHandlers}
+            >
+              <ProtectedImage
+                src="/images/book/IMG_4672.jpg"
+                alt="Graduation bouquet with red and white roses"
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </div>
+        </ScrollReveal>
       </section>
     </>
   )

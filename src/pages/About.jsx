@@ -16,13 +16,15 @@ export default function About() {
         <div className="grid md:grid-cols-2 gap-16 md:gap-24 items-start">
           <ScrollReveal>
             <div
-              className="aspect-[3/4] max-w-md border border-line overflow-hidden gallery-protected"
+              className="aspect-square w-full max-w-md overflow-hidden gallery-protected"
               {...protectedGalleryHandlers}
             >
               <ProtectedImage
-                src="/images/portraits/IMG_9437.jpg"
-                alt="Jasmine C. Lee"
-                className="w-full h-full object-cover"
+                src="/images/about/IMG_3898-2.jpg"
+                alt="Jasmine C. Lee at Sather Gate, UC Berkeley graduation"
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover"
               />
             </div>
           </ScrollReveal>

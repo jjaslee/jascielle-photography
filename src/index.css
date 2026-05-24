@@ -147,7 +147,7 @@ body {
   .gallery-grid {
     --gallery-gap: 1.25rem;
     gap: var(--gallery-gap);
-    @apply gallery-protected grid grid-cols-1 items-stretch sm:grid-cols-2 xl:grid-cols-3;
+    @apply gallery-protected grid grid-cols-1 items-stretch sm:grid-cols-2 md:grid-cols-3;
   }
 
   @screen md {
