@@ -45,6 +45,9 @@ export default function About() {
                 in nature. That work lives under Places & light and informs how I compose
                 portraits too.
               </p>
+              <p>
+                P.S. Jascielle comes from the initials in my name, J.C.L.
+              </p>
               <ul className="text-sm space-y-2 pt-4 border-t border-line">
                 <li>Based in the Bay Area. Open to travel for events</li>
                 <li>Typical turnaround: 1 to 2 weeks for portraits</li>
