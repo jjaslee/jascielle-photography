@@ -39,10 +39,14 @@ function GalleryCell({ cell, onOpen }) {
   }
 
   const image = cell.images[0]
+  const singleTileClass = image.landscape
+    ? 'aspect-[4/3] [content-visibility:auto]'
+    : 'aspect-[3/4] [content-visibility:auto]'
+
   return (
     <GalleryTile
       image={image}
-      className="aspect-[3/4] [content-visibility:auto]"
+      className={singleTileClass}
       onOpen={onOpen}
     />
   )

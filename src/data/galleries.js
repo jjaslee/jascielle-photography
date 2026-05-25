@@ -48,6 +48,18 @@ export const portraitImages = [
     theme: 'bright',
   },
   {
+    src: '/images/portraits/IMG_2827.jpg',
+    alt: 'Grad portrait seated on a sunlit lawn',
+    session: 'grad',
+    theme: 'bright',
+  },
+  {
+    src: '/images/portraits/IMG_4038.jpg',
+    alt: 'Grad portrait at Wheeler Hall with raised stole',
+    session: 'grad',
+    theme: 'bright',
+  },
+  {
     src: '/images/portraits/IMG_3853.jpg',
     alt: 'Graduate in cap and gown on campus',
     session: 'grad',
@@ -288,6 +300,11 @@ export const placeImages = [
   {
     src: '/images/places/IMG_1925.jpg',
     alt: 'Sunlit path through a green forest',
+    theme: 'green',
+  },
+  {
+    src: '/images/places/IMG_1923.jpg',
+    alt: 'Sunlit meadow bordered by dense trees',
     theme: 'green',
   },
   {
