@@ -131,6 +131,26 @@ export const placeImages = [
     theme: 'night',
   },
   {
+    src: '/images/places/IMG_0435.jpg',
+    alt: '7-Eleven and game centre signs at night',
+    theme: 'night',
+  },
+  {
+    src: '/images/places/IMG_0431.jpg',
+    alt: 'Bus stop on Fleming Road at night',
+    theme: 'night',
+  },
+  {
+    src: '/images/places/IMG_0401.jpg',
+    alt: 'KFC and bus stop on a rainy Hong Kong street',
+    theme: 'night',
+  },
+  {
+    src: '/images/places/IMG_0408.jpg',
+    alt: 'Red taxi on a wet street at night',
+    theme: 'night',
+  },
+  {
     src: '/images/places/IMG_4171.jpg',
     alt: 'Osaka Shinsekai intersection from above',
     theme: 'street',
@@ -293,6 +313,11 @@ export const placeImages = [
   {
     src: '/images/places/IMG_9297.jpg',
     alt: 'Tent campsite at the foot of a forested mountain',
+    theme: 'green',
+  },
+  {
+    src: '/images/places/IMG_9095.jpg',
+    alt: 'Children crossing sign by a forest road',
     theme: 'green',
   },
   {
