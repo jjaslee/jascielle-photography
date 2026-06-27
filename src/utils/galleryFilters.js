@@ -25,10 +25,10 @@ export function filterByCategory(images, active) {
 }
 
 const placeThemeLabels = {
-  night: 'Night & glow',
-  water: 'Water & sky',
-  green: 'Green & quiet',
-  street: 'Street & scene',
+  night: 'Ember',
+  water: 'Tidal',
+  green: 'Canopy',
+  street: 'Passing',
   wildlife: 'Wildlife',
 }
 

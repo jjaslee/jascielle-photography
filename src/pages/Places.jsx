@@ -14,7 +14,7 @@ export default function Places() {
     <>
       <PageHeader
         title="Places & light"
-        subtitle="Night light, streets, water, and quieter frames. Work outside sessions that shapes how I see."
+        subtitle="Glow, passing streets, tidal water, and green canopy. Work outside sessions that shapes how I see."
       >
         <GalleryFilters filters={placeFilterOptions} active={active} onChange={setActive} />
       </PageHeader>

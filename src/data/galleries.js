@@ -377,10 +377,10 @@ export const placeImages = [
 /** Shown on Places page; add images with matching `theme` as you grow the gallery. */
 export const placeFilterOptions = [
   { id: 'all', label: 'All' },
-  { id: 'night', label: 'Night & glow' },
-  { id: 'street', label: 'Street & scene' },
-  { id: 'water', label: 'Water & sky' },
-  { id: 'green', label: 'Green & quiet' },
+  { id: 'night', label: 'Ember' },
+  { id: 'street', label: 'Passing' },
+  { id: 'water', label: 'Tidal' },
+  { id: 'green', label: 'Canopy' },
   { id: 'wildlife', label: 'Wildlife' },
 ]
 
