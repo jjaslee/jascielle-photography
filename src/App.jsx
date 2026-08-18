@@ -8,12 +8,14 @@ import Events from './pages/Events'
 import Places from './pages/Places'
 import About from './pages/About'
 import Book from './pages/Book'
+import WorkCategory from './pages/WorkCategory'
 
 function AppRoutes() {
   return (
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Home />} />
+        <Route path="work/:categoryId" element={<WorkCategory />} />
         <Route path="portraits" element={<Portraits />} />
         <Route path="events" element={<Events />} />
         <Route path="places" element={<Places />} />

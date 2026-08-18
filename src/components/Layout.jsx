@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import Nav from './Nav'
 import Footer from './Footer'
 import CursorSpotlight from './CursorSpotlight'
@@ -6,6 +6,9 @@ import { useScrollToTopOnNavigate } from '../hooks/useScrollToTop'
 
 export default function Layout() {
   useScrollToTopOnNavigate()
+  const { pathname } = useLocation()
+  // Home concludes inside SpatialFieldChapter (CTA + quiet meta). Avoid a second footer.
+  const showFooter = pathname !== '/'
 
   return (
     <>
@@ -15,7 +18,7 @@ export default function Layout() {
         <main className="flex-1">
           <Outlet />
         </main>
-        <Footer />
+        {showFooter ? <Footer /> : null}
       </div>
     </>
   )

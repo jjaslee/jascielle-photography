@@ -9,10 +9,18 @@ export default {
         ink: 'rgb(var(--fg) / <alpha-value>)',
         muted: 'rgb(var(--muted) / <alpha-value>)',
         line: 'rgb(var(--border) / <alpha-value>)',
+        salience: 'rgb(var(--salience-read) / <alpha-value>)',
+        'salience-muted': 'rgb(var(--salience-unread) / <alpha-value>)',
+        'salience-warm': 'rgb(var(--salience-warm) / <alpha-value>)',
+        'salience-cool': 'rgb(var(--salience-cool) / <alpha-value>)',
       },
       fontFamily: {
-        serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+        sans: ['"Manrope"', 'system-ui', 'sans-serif'],
+      },
+      letterSpacing: {
+        editorial: '0.18em',
+        nav: '0.14em',
       },
       transitionDuration: {
         slow: '900ms',
