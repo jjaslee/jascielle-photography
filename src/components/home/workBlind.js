@@ -1,12 +1,12 @@
-/** Shared blind timing + progress mapping (click timer and scroll both drive 0..1). */
+/** Shared blind timing + progress mapping for click-driven close animations. */
 
-/** Wide stagger so each row’s close reads on its own before the next commits. */
+/** Wide stagger so each row reads individually before the next closes. */
 export const BLIND_STAGGER_MS = 260
 export const BLIND_SELECTED_EXTRA_MS = 100
-/** Shorter per-row window so closes don’t stack into one mush. */
+/** Shorter per-row window so the shut feels crisp. */
 export const BLIND_DURATION_MS = 480
 
-/** Total ms for a full click-driven close, including stagger tail. */
+/** Total ms for a full close, including the stagger tail. */
 export function blindCloseTotalMs(categoryCount) {
   const lastIndex = Math.max(categoryCount - 1, 0)
   return (
@@ -20,15 +20,15 @@ function clamp01(v) {
   return Math.min(1, Math.max(0, v))
 }
 
-/** Ease-in cubic — accelerates shut, no ease-out rebound feel. */
+/** Ease-in cubic for a clean shut with no rebound. */
 function easeBlind(t) {
   const x = clamp01(t)
   return x * x * x
 }
 
 /**
- * Map global blindProgress (0..1) → per-row progress with bottom-to-top stagger.
- * Selected row lags slightly so the choice stays legible.
+ * Map global blindProgress (0..1) to per-row progress with bottom-up stagger.
+ * The selected row lags slightly so the clicked choice stays legible longer.
  */
 export function rowBlindProgress(globalP, index, isSelected, categoryCount) {
   const total = blindCloseTotalMs(categoryCount)
@@ -42,19 +42,16 @@ export function rowBlindProgress(globalP, index, isSelected, categoryCount) {
   return (globalP - start) / (end - start)
 }
 
-/** Face transform/opacity — clean shut, no horizontal bounce. */
+/** Face transform/opacity for the slat close. */
 export function faceStyleFromRowProgress(rowP) {
   const t = easeBlind(rowP)
-  const sy = Math.max(1 - t, 0.0001)
-  const op = 1 - t
-
   return {
-    transform: `scaleY(${sy})`,
-    opacity: op,
+    transform: `scaleY(${Math.max(1 - t, 0.0001)})`,
+    opacity: 1 - t,
   }
 }
 
-/** Hairline border fade from row progress — no layout height change. */
+/** Hairline border fade driven by the same row progress. */
 export function ruleStyleFromRowProgress(rowP) {
   const t = easeBlind(rowP)
   if (t < 0.55) {

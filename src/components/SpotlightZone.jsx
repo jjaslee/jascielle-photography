@@ -26,6 +26,7 @@ export default function SpotlightZone({ children, className = '' }) {
 
     glow.style.setProperty('--spotlight-x', `${e.clientX - rect.left}px`)
     glow.style.setProperty('--spotlight-y', `${e.clientY - rect.top}px`)
+    glow.style.removeProperty('opacity')
   })
 
   return (
@@ -36,6 +37,7 @@ export default function SpotlightZone({ children, className = '' }) {
           className={`spotlight-zone__glow transition-opacity duration-300 ${
             active ? 'opacity-100' : 'opacity-0'
           }`}
+          style={{ opacity: 0 }}
           aria-hidden="true"
         />
       )}

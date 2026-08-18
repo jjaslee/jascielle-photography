@@ -15,35 +15,6 @@ export function scrollToTop(lenis, options = { immediate: true }) {
   }
 }
 
-/** Scroll to #work, past the iris overlap so Selected Work is on screen. */
-export function scrollToWork(lenis, { immediate = false } = {}) {
-  const target = document.getElementById('work')
-  if (!target) return
-
-  const offsetSvh = Number(target.dataset.navScrollOffsetSvh || 0)
-  const offset = (offsetSvh / 100) * window.innerHeight
-
-  if (lenis) {
-    lenis.scrollTo(target, {
-      offset,
-      // Ease-out: paced travel, then a long decelerating settle onto Selected Work.
-      duration: immediate ? 0 : 10000.5,
-      easing: immediate
-        ? undefined
-        : (t) => 1 - Math.pow(1 - t, 5),
-      immediate,
-    })
-    return
-  }
-
-  const top =
-    target.getBoundingClientRect().top + window.scrollY + offset
-  window.scrollTo({
-    top,
-    behavior: immediate ? 'auto' : 'smooth',
-  })
-}
-
 export function LenisProvider({ children }) {
   const lenisRef = useRef(null)
 

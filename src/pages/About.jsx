@@ -1,83 +1,230 @@
-import ScrollReveal from '../components/ScrollReveal'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import BlindExitLink from '../components/BlindExitLink'
+import BarrelRollLabel from '../components/BarrelRollLabel'
 import ProtectedImage from '../components/ProtectedImage'
+import { useScrollReveal } from '../hooks/useScrollReveal'
 import { protectedGalleryHandlers } from '../utils/imageProtection'
-import PageHeader from '../components/PageHeader'
-import { Link } from 'react-router-dom'
-export default function About() {
+import { useBlindExit } from '../context/BlindExitContext'
+import {
+  blindCloseTotalMs,
+  faceStyleFromRowProgress,
+  rowBlindProgress,
+} from '../components/home/workBlind'
+
+// Number of "slats" on the About page (title, portrait, p1, p2, intro1, intro2, closing, cta)
+const SLAT_COUNT = 8
+
+const PORTRAITS = [
+  {
+    src: '/images/about/IMG_3898.jpg',
+    alt: 'Jasmine C. Lee holding her graduation cap at Sather Gate',
+  },
+  {
+    src: '/images/about/about-me-goals.jpg',
+    alt: 'Jasmine C. Lee photographing a city from a rocky overlook',
+  },
+]
+
+function AboutReveal({ children, className = '', delay = 0, lift = false }) {
+  const { ref, visible } = useScrollReveal()
+
   return (
-    <>
-      <PageHeader
-        title="About"
-        subtitle="Jascielle Photography is the portrait and event work of Jasmine C. Lee."
-        subtitleOneLine
-      />
+    <div
+      ref={ref}
+      className={`ease-elegant ${
+        lift ? 'transition-[opacity,transform] duration-700' : 'transition-opacity duration-700'
+      } ${visible ? 'opacity-100 translate-y-0' : `opacity-0 ${lift ? 'translate-y-3' : ''}`} ${className}`}
+      style={{ transitionDelay: visible ? `${delay}ms` : '0ms' }}
+    >
+      {children}
+    </div>
+  )
+}
 
-      <section className="section-pad pb-24 md:pb-32 max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-2 gap-16 md:gap-24 items-start">
-          <ScrollReveal>
-            <div
-              className="aspect-square w-full max-w-md overflow-hidden gallery-protected"
-              {...protectedGalleryHandlers}
-            >
-              <ProtectedImage
-                src="/images/about/IMG_3898-2.jpg"
-                alt="Jasmine C. Lee at Sather Gate, UC Berkeley graduation"
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-cover"
-              />
-            </div>
-          </ScrollReveal>
+function AboutPortrait({ blindStyle }) {
+  const [index, setIndex] = useState(0)
+  const [hovering, setHovering] = useState(false)
+  const [hoverLocked, setHoverLocked] = useState(false)
+  const [fineHover, setFineHover] = useState(false)
 
-          <ScrollReveal delay={120}>
-            <div className="space-y-6 text-muted leading-relaxed">
-              <p className="text-ink font-serif text-xl md:text-2xl font-light leading-snug">
-                I photograph people at milestones and in motion: grad portraits, headshots, and
-                the energy of campus events.
-              </p>
-              <p>
-                Sessions are relaxed and collaborative. I guide when you want direction and step
-                back when you want candid moments. Edited galleries are delivered with care and a
-                consistent eye.
-              </p>
-              <p>
-                When I&apos;m not shooting clients, I&apos;m often chasing light on the street or
-                in nature. That work lives under Places & light and informs how I compose
-                portraits too.
-              </p>
-              <p>
-                P.S. Jascielle comes from the initials in my name, J.C.L.
-              </p>
-              <ul className="text-sm space-y-2 pt-4 border-t border-line">
-                <li>Based in the Bay Area. Open to travel for events</li>
-                <li>Typical turnaround: 1 to 2 weeks for portraits</li>
-                <li>
-                  Also: design & engineering at{' '}
-                  <a
-                    href="https://jasmineclee.vercel.app/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-ink underline underline-offset-2"
-                  >
-                    jasmineclee.vercel.app
-                  </a>
-                </li>
-              </ul>
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const sync = () => setFineHover(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  const previewing = fineHover && hovering && !hoverLocked
+  const shown = previewing ? 1 - index : index
+
+  return (
+    <div className="origin-top will-change-transform" style={blindStyle}>
+      <button
+        type="button"
+        aria-label="Show other portrait"
+        onMouseEnter={() => { if (fineHover) setHovering(true) }}
+        onMouseLeave={() => { setHovering(false); setHoverLocked(false) }}
+        onClick={() => {
+          if (fineHover && hovering && !hoverLocked) {
+            setIndex(shown)
+            setHoverLocked(true)
+          } else {
+            setIndex((current) => 1 - current)
+          }
+        }}
+        className="relative mx-auto block aspect-square w-[74vw] max-w-[320px] cursor-pointer overflow-hidden border-0 bg-transparent p-0 gallery-protected focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-ink/40"
+        {...protectedGalleryHandlers}
+      >
+        {PORTRAITS.map((photo, i) => (
+          <ProtectedImage
+            key={photo.src}
+            src={photo.src}
+            alt={i === shown ? photo.alt : ''}
+            aria-hidden={i === shown ? undefined : true}
+            loading={i === 0 ? 'eager' : 'lazy'}
+            decoding="async"
+            className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-500 ease-elegant ${
+              i === shown ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        ))}
+      </button>
+    </div>
+  )
+}
+
+/** Compute the blind style for a given slat index (bottom-up: high index = bottom). */
+function slatStyle(blindProgress, slatIndex) {
+  if (blindProgress <= 0) return undefined
+  const p = rowBlindProgress(blindProgress, slatIndex, false, SLAT_COUNT)
+  return faceStyleFromRowProgress(p)
+}
+
+export default function About() {
+  const navigate = useNavigate()
+  const ctx = useBlindExit()
+  const [blindProgress, setBlindProgress] = useState(0)
+  const blindRafRef = useRef(0)
+  const navTimerRef = useRef(0)
+  const drivingRef = useRef(false)
+
+  const runBlindClose = useCallback((to) => {
+    if (drivingRef.current) return
+    drivingRef.current = true
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const duration = reduceMotion ? 0 : blindCloseTotalMs(SLAT_COUNT)
+
+    const finish = () => {
+      cancelAnimationFrame(blindRafRef.current)
+      clearTimeout(navTimerRef.current)
+      setBlindProgress(1)
+      navigate(to)
+    }
+
+    if (duration < 16) { finish(); return }
+
+    navTimerRef.current = setTimeout(finish, duration)
+    const start = performance.now()
+    const tick = (now) => {
+      const t = Math.min((now - start) / duration, 1)
+      setBlindProgress(1 - (1 - t) ** 3)
+      if (t < 1) blindRafRef.current = requestAnimationFrame(tick)
+    }
+    blindRafRef.current = requestAnimationFrame(tick)
+  }, [navigate])
+
+  useEffect(() => {
+    if (!ctx) return
+    return ctx.register(runBlindClose)
+  }, [ctx, runBlindClose])
+
+  useEffect(() => () => {
+    cancelAnimationFrame(blindRafRef.current)
+    clearTimeout(navTimerRef.current)
+  }, [])
+
+  // Slat order top→bottom: 0=title 1=portrait 2=p1 3=p2 4=intro1 5=intro2 6=closing 7=cta
+  // rowBlindProgress collapses from bottom (high index) to top (low index)
+  const s = (i) => slatStyle(blindProgress, i)
+
+  return (
+    <section className="section-pad text-ink pt-32 md:pt-40 pb-28 md:pb-40">
+      <div className="mx-auto flex max-w-full flex-col items-center text-center">
+
+        <AboutReveal>
+          <div className="origin-top will-change-transform" style={s(0)}>
+            <h1 className="font-display font-normal leading-[1.1] text-ink text-[clamp(4rem,6vw,6.5rem)]">
+              About
+            </h1>
+          </div>
+        </AboutReveal>
+
+        <AboutReveal delay={90} lift className="mt-8 md:mt-12">
+          <AboutPortrait blindStyle={s(1)} />
+        </AboutReveal>
+
+        <div className="mt-16 md:mt-20 w-[88vw] max-w-[720px] font-mono font-light text-pretty text-ink/80 tracking-[0.03em] md:tracking-[0.045em] text-[clamp(0.95rem,1.25vw,1.15rem)] leading-[1.85]">
+          <div className="flex flex-col gap-8">
+            <AboutReveal delay={0}>
+              <div className="origin-top will-change-transform" style={s(2)}>
+                <p>
+                  We remember moments before we understand their{' '}
+                  <span className="text-salience-warm">semantics</span>. In a world where life
+                  continues regardless of your existence, I've come to derive meaning from moments
+                  that would otherwise dissipate within seconds.
+                </p>
+              </div>
+            </AboutReveal>
+            <AboutReveal delay={80}>
+              <div className="origin-top will-change-transform" style={s(3)}>
+                <p>
+                  Through photography, I've stopped passively moving through my surroundings. Whether
+                  positive or negative, I find it a blessing for any emotion to{' '}
+                  <span className="text-salience-warm">linger</span> just a little while longer. At
+                  its core, who are we if told our{' '}
+                  <span className="text-salience-warm">memories</span> are not uniquely ours?
+                </p>
+              </div>
+            </AboutReveal>
+          </div>
+
+          <AboutReveal delay={160} className="mt-16 md:mt-[5.5rem]">
+            <div className="origin-top will-change-transform" style={s(4)}>
+              <p>Uhm anyways, I'm Jasmine C. Lee ("J-C-L").</p>
             </div>
-            <div className="flex flex-wrap gap-6 mt-10 text-sm">
-              <Link to="/book" className="btn-primary">
-                Book a session
-              </Link>
-              <a
-                href="mailto:jascielle.photos@gmail.com"
-                className="link-underline self-center"
+          </AboutReveal>
+          <AboutReveal delay={240}>
+            <div className="origin-top will-change-transform" style={s(5)}>
+              <p>Thank you for coming to my yap session!</p>
+            </div>
+          </AboutReveal>
+
+          <AboutReveal delay={320} className="mx-auto mt-10 md:mt-12 max-w-[34rem] text-ink">
+            <div className="origin-top will-change-transform" style={s(6)}>
+              <p>
+                I hope to help you preserve not only how a moment looks, but what it comes to{' '}
+                <span className="text-salience-warm">mean</span>.
+              </p>
+            </div>
+          </AboutReveal>
+
+          <AboutReveal delay={400} className="mt-12 md:mt-16">
+            <div className="origin-top will-change-transform" style={s(7)}>
+              <BlindExitLink
+                to="/book"
+                aria-label="Let's talk"
+                className="featured-cta-link font-mono font-light text-[13px] md:text-[14px] tracking-[0.08em] uppercase whitespace-nowrap"
               >
-                jascielle.photos@gmail.com
-              </a>
+                <BarrelRollLabel text="Let's talk" />{' '}
+                <span className="featured-cta-arrow">→</span>
+              </BlindExitLink>
             </div>
-          </ScrollReveal>
+          </AboutReveal>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   )
 }

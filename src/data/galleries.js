@@ -409,11 +409,9 @@ export const portfolioCategories = [
 ]
 
 /**
- * Home Selected Work rows.
- * Click → time-driven blind close → navigate to `destination` category page.
- * Scroll through WorkChapter drives the same blinds without navigation.
- * archiveLinks remain for later in-category “View all” into existing archives.
- * previewImages cycle on each re-entry to that row.
+ * Work page category index rows.
+ * Click navigates to `destination`. archiveLinks remain for later in-category
+ * “View all” into existing archives. previewImages cycle on each re-entry.
  */
 export const homeWorkCategories = [
   {
@@ -478,239 +476,33 @@ export const homeWorkCategories = [
 ]
 
 /**
- * Home spatial photography field (Step 6).
- * Photographs on a loose helical cylinder — scroll orbits, pointer reveals.
- * `angle` radians; `radius` / `y` in px (view-relative); `scale` multiplies base width.
- * Spread fills top→bottom so the stage doesn’t clip high or leave a void low.
- * Objects/Spaces omitted until real assets exist.
+ * Homepage Featured row — three editorial prints linking into /work.
  */
-function placeBy(filename) {
-  return placeImages.find((img) => img.src.endsWith(filename)) ?? placeImages[0]
-}
-
-function spatialPrint(img, pose) {
-  return {
-    src: img.src,
-    alt: img.alt,
-    angle: pose.angle,
-    radius: pose.radius,
-    y: pose.y,
-    depthOffset: pose.depthOffset ?? 0,
-    scale: pose.scale ?? 1,
-    width: pose.width,
-    orient: pose.orient ?? 'landscape',
-  }
-}
-
-export const homeSpatialField = [
-  // —— upper band ——
-  spatialPrint(placeBy('IMG_4171.jpg'), {
-    angle: 0.2,
-    radius: 520,
-    y: -210,
-    width: 108,
-    orient: 'landscape',
-  }),
-  spatialPrint(portraitImages[3], {
-    angle: 1.25,
-    radius: 600,
-    y: -185,
-    width: 72,
-    orient: 'portrait',
-  }),
-  spatialPrint(placeBy('IMG_4109.jpg'), {
-    angle: 2.35,
-    radius: 480,
-    y: -230,
-    width: 98,
-    orient: 'landscape',
-  }),
-  spatialPrint(eventImages[0], {
-    angle: 3.5,
-    radius: 640,
-    y: -160,
-    width: 70,
-    orient: 'portrait',
-  }),
-  spatialPrint(placeBy('IMG_3916.jpg'), {
-    angle: 4.6,
-    radius: 545,
-    y: -195,
-    width: 102,
-    orient: 'landscape',
-  }),
-  spatialPrint(portraitImages[8], {
-    angle: 5.7,
-    radius: 505,
-    y: -220,
-    width: 74,
-    orient: 'portrait',
-  }),
-
-  // —— upper-mid ——
-  spatialPrint(placeBy('IMG_4139.jpg'), {
-    angle: 0.7,
-    radius: 610,
-    y: -95,
-    width: 112,
-    orient: 'landscape',
-  }),
-  spatialPrint(eventImages[3], {
-    angle: 1.9,
-    radius: 470,
-    y: -70,
-    depthOffset: -40,
-    width: 88,
-    orient: 'landscape',
-  }),
-  spatialPrint(placeBy('IMG_1513.jpg'), {
-    angle: 3.1,
-    radius: 650,
-    y: -115,
-    width: 118,
-    orient: 'landscape',
-  }),
-  spatialPrint(portraitImages[2], {
-    angle: 4.25,
-    radius: 530,
-    y: -55,
-    width: 80,
-    orient: 'portrait',
-  }),
-  spatialPrint(placeBy('IMG_8861.jpg'), {
-    angle: 5.4,
-    radius: 500,
-    y: -40,
-    width: 104,
-    orient: 'landscape',
-  }),
-
-  // —— mid ——
-  spatialPrint(placeBy('IMG_3134.jpg'), {
-    angle: 0.15,
-    radius: 560,
-    y: 10,
-    width: 148,
-    orient: 'landscape',
-  }),
-  spatialPrint(portraitImages[0], {
-    angle: 1.4,
-    radius: 495,
-    y: 35,
-    width: 74,
-    orient: 'portrait',
-  }),
-  spatialPrint(placeBy('IMG_1782.jpg'), {
-    angle: 2.55,
-    radius: 680,
-    y: -5,
-    depthOffset: 35,
-    width: 100,
-    orient: 'landscape',
-  }),
-  spatialPrint(eventImages[2], {
-    angle: 3.7,
-    radius: 540,
-    y: 55,
-    width: 72,
-    orient: 'portrait',
-  }),
-  spatialPrint(placeBy('IMG_4013.jpg'), {
-    angle: 4.9,
-    radius: 605,
-    y: 20,
-    width: 106,
-    orient: 'landscape',
-  }),
-  spatialPrint(placeBy('IMG_9424.jpg'), {
-    angle: 5.95,
-    radius: 520,
-    y: 45,
-    depthOffset: -25,
-    width: 84,
-    orient: 'portrait',
-  }),
-
-  // —— lower-mid ——
-  spatialPrint(placeBy('IMG_1925.jpg'), {
-    angle: 0.95,
-    radius: 535,
-    y: 120,
-    width: 108,
-    orient: 'landscape',
-  }),
-  spatialPrint(portraitImages[1], {
-    angle: 2.15,
-    radius: 615,
-    y: 95,
-    width: 76,
-    orient: 'portrait',
-  }),
-  spatialPrint(placeBy('IMG_4020.jpg'), {
-    angle: 3.35,
-    radius: 500,
-    y: 145,
-    width: 88,
-    orient: 'portrait',
-  }),
-  spatialPrint(eventImages[4], {
-    angle: 4.5,
-    radius: 640,
-    y: 110,
-    width: 100,
-    orient: 'landscape',
-  }),
-  spatialPrint(placeBy('IMG_2396.jpg'), {
-    angle: 5.65,
-    radius: 555,
-    y: 135,
-    width: 104,
-    orient: 'landscape',
-  }),
-
-  // —— lower band ——
-  spatialPrint(placeBy('IMG_1923.jpg'), {
-    angle: 0.45,
-    radius: 575,
-    y: 200,
-    width: 102,
-    orient: 'landscape',
-  }),
-  spatialPrint(portraitImages[7], {
-    angle: 1.65,
-    radius: 510,
-    y: 225,
-    width: 70,
-    orient: 'portrait',
-  }),
-  spatialPrint(placeBy('IMG_9297.jpg'), {
-    angle: 2.85,
-    radius: 645,
-    y: 185,
-    width: 94,
-    orient: 'landscape',
-  }),
-  spatialPrint(portraitImages[9], {
-    angle: 4.05,
-    radius: 590,
-    y: 210,
-    width: 72,
-    orient: 'portrait',
-  }),
-  spatialPrint(placeBy('IMG_9000.jpg'), {
-    angle: 5.2,
-    radius: 540,
-    y: 195,
-    width: 106,
-    orient: 'landscape',
-  }),
-  spatialPrint(placeBy('IMG_8930.jpg'), {
-    angle: 6.0,
-    radius: 565,
-    y: 215,
-    width: 92,
-    orient: 'landscape',
-  }),
+export const featuredWork = [
+  {
+    id: 'people',
+    image: '/images/portraits/IMG_4069.jpg',
+    alt: 'Golden hour grad portrait',
+    title: 'People',
+    to: '/work/people',
+    footerLabel: 'People — Portraits · Events',
+  },
+  {
+    id: 'places',
+    image: '/images/places/IMG_4171.jpg',
+    alt: 'Osaka Shinsekai intersection from above',
+    title: 'Places',
+    to: '/work/places',
+    footerLabel: 'Places — Street · Nature · Light',
+  },
+  {
+    id: 'wildlife',
+    image: '/images/places/IMG_4139.jpg',
+    alt: 'Jaguar in dappled light',
+    title: 'Wildlife',
+    to: '/work/wildlife',
+    footerLabel: 'Wildlife — Animals · Nature',
+  },
 ]
 
 export const services = [

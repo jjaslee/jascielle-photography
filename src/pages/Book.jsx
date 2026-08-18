@@ -1,9 +1,39 @@
-import { useState } from 'react'
-import PageHeader from '../components/PageHeader'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ProtectedImage from '../components/ProtectedImage'
-import ScrollReveal from '../components/ScrollReveal'
+import { useScrollReveal } from '../hooks/useScrollReveal'
 import { protectedGalleryHandlers } from '../utils/imageProtection'
 import { services, sessionAddons } from '../data/galleries'
+import { useBlindExit } from '../context/BlindExitContext'
+import {
+  blindCloseTotalMs,
+  faceStyleFromRowProgress,
+  rowBlindProgress,
+} from '../components/home/workBlind'
+
+const SLAT_COUNT = 4
+
+function BookReveal({ children, className = '', delay = 0, blindStyle }) {
+  const { ref, visible } = useScrollReveal()
+  return (
+    <div
+      ref={ref}
+      className={`transition-[opacity,transform] duration-700 ease-elegant ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+      } ${className}`}
+      style={{ transitionDelay: visible ? `${delay}ms` : '0ms' }}
+    >
+      <div className="origin-top will-change-transform" style={blindStyle}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+const fieldLabelClass =
+  'block font-mono font-light text-[10px] leading-none tracking-[0.14em] uppercase text-muted mb-2'
+const fieldInputClass =
+  'w-full bg-transparent border-b border-line py-3 font-mono font-light text-[13px] md:text-[14px] tracking-[0.02em] text-ink focus:outline-none focus:border-ink transition-colors'
 
 const FORMSPREE_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT
 const BOOKING_EMAIL = 'jascielle.photos@gmail.com'
@@ -15,6 +45,51 @@ const sessionLabels = {
 }
 
 export default function Book() {
+  const navigate = useNavigate()
+  const ctx = useBlindExit()
+  const [blindProgress, setBlindProgress] = useState(0)
+  const blindRafRef = useRef(0)
+  const navTimerRef = useRef(0)
+  const drivingRef = useRef(false)
+
+  const runBlindClose = useCallback((to) => {
+    if (drivingRef.current) return
+    drivingRef.current = true
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const duration = reduceMotion ? 0 : blindCloseTotalMs(SLAT_COUNT)
+    const finish = () => {
+      cancelAnimationFrame(blindRafRef.current)
+      clearTimeout(navTimerRef.current)
+      setBlindProgress(1)
+      navigate(to)
+    }
+    if (duration < 16) { finish(); return }
+    navTimerRef.current = setTimeout(finish, duration)
+    const start = performance.now()
+    const tick = (now) => {
+      const t = Math.min((now - start) / duration, 1)
+      setBlindProgress(1 - (1 - t) ** 3)
+      if (t < 1) blindRafRef.current = requestAnimationFrame(tick)
+    }
+    blindRafRef.current = requestAnimationFrame(tick)
+  }, [navigate])
+
+  useEffect(() => {
+    if (!ctx) return
+    return ctx.register(runBlindClose)
+  }, [ctx, runBlindClose])
+
+  useEffect(() => () => {
+    cancelAnimationFrame(blindRafRef.current)
+    clearTimeout(navTimerRef.current)
+  }, [])
+
+  const slat = (i) => {
+    if (blindProgress <= 0) return undefined
+    const p = rowBlindProgress(blindProgress, i, false, SLAT_COUNT)
+    return faceStyleFromRowProgress(p)
+  }
+
   const [submitted, setSubmitted] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState(null)
@@ -75,47 +150,58 @@ export default function Book() {
 
   return (
     <>
-      <PageHeader
-        title="Book"
-        subtitle="Tell me about your session. I'll reply within 48 hours with availability and next steps."
-      />
+      <section className="section-pad pt-32 md:pt-40 pb-16 md:pb-24">
+        <BookReveal blindStyle={slat(0)}>
+          <div className="mx-auto flex max-w-full flex-col items-center text-center">
+            <h1 className="font-display font-normal leading-[1.1] text-ink text-[clamp(4rem,6vw,6.5rem)]">
+              Book
+            </h1>
+            <p className="mt-6 md:mt-8 max-w-[42rem] font-mono font-light text-pretty text-ink/80 tracking-[0.05em] text-[clamp(0.9rem,1.15vw,1.1rem)] leading-[1.55]">
+              Tell me about your vision! I&apos;ll get back to you within 48 hours with
+              availability and next steps.
+            </p>
+          </div>
+        </BookReveal>
+      </section>
 
       <section className="section-pad pb-24 md:pb-32 max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
-          <div className="space-y-8">
+          <div className="space-y-8 font-mono font-light">
             {services.map((s, i) => (
-              <ScrollReveal key={s.id} delay={i * 80}>
+              <BookReveal key={s.id} delay={i * 80} blindStyle={slat(1)}>
                 <div className="border border-line p-6 md:p-8">
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
-                    <h2 className="font-serif text-xl md:text-2xl font-light text-ink">{s.title}</h2>
-                    <p className="text-sm text-ink tracking-wide">
-                      Starting at <span className="font-medium">${s.price}</span>
+                    <h2 className="text-[15px] md:text-[16px] text-ink">{s.title}</h2>
+                    <p className="text-[11px] text-muted tracking-[0.04em]">
+                      Starting at ${s.price}
                     </p>
                   </div>
-                  <p className="text-muted text-sm mt-3 leading-relaxed">{s.description}</p>
+                  <p className="text-muted text-[11px] md:text-[12px] mt-3 leading-relaxed">
+                    {s.description}
+                  </p>
                 </div>
-              </ScrollReveal>
+              </BookReveal>
             ))}
-            <ScrollReveal delay={services.length * 80}>
+            <BookReveal delay={services.length * 80} blindStyle={slat(1)}>
               <div className="border border-line p-6 md:p-8">
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <h2 className="font-serif text-xl md:text-2xl font-light text-ink">
-                    {sessionAddons.title}
-                  </h2>
-                  <p className="text-sm text-ink tracking-wide font-medium">
+                  <h2 className="text-[15px] md:text-[16px] text-ink">{sessionAddons.title}</h2>
+                  <p className="text-[11px] text-muted tracking-[0.04em]">
                     {sessionAddons.priceLabel}
                   </p>
                 </div>
-                <p className="text-muted text-sm mt-3 leading-relaxed">{sessionAddons.description}</p>
+                <p className="text-muted text-[11px] md:text-[12px] mt-3 leading-relaxed">
+                  {sessionAddons.description}
+                </p>
               </div>
-            </ScrollReveal>
+            </BookReveal>
           </div>
 
-          <ScrollReveal delay={100}>
+          <BookReveal delay={100} className="lg:-mt-4" blindStyle={slat(2)}>
             {submitted ? (
-              <div className="border border-line p-8 md:p-10">
-                <p className="font-serif text-2xl font-light text-ink">Thank you.</p>
-                <p className="text-muted mt-4 text-sm leading-relaxed">
+              <div className="border border-line p-8 md:p-10 font-mono font-light">
+                <p className="text-[16px] text-ink">Thank you.</p>
+                <p className="text-muted mt-4 text-[13px] leading-relaxed">
                   Your inquiry was sent to{' '}
                   <a href={`mailto:${BOOKING_EMAIL}`} className="text-ink underline">
                     {BOOKING_EMAIL}
@@ -124,7 +210,7 @@ export default function Book() {
                 </p>
               </div>
             ) : (
-              <form onSubmit={onSubmit} className="space-y-8">
+              <form onSubmit={onSubmit} className="space-y-8 font-mono font-light">
                 <input
                   type="text"
                   name="_gotcha"
@@ -136,7 +222,7 @@ export default function Book() {
                   aria-hidden
                 />
                 <div>
-                  <label htmlFor="name" className="block text-xs tracking-widest uppercase text-muted mb-2">
+                  <label htmlFor="name" className={fieldLabelClass}>
                     Name
                   </label>
                   <input
@@ -145,11 +231,11 @@ export default function Book() {
                     required
                     value={form.name}
                     onChange={onChange}
-                    className="w-full bg-transparent border-b border-line py-3 text-ink focus:outline-none focus:border-ink transition-colors"
+                    className={fieldInputClass}
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-xs tracking-widest uppercase text-muted mb-2">
+                  <label htmlFor="email" className={fieldLabelClass}>
                     Email
                   </label>
                   <input
@@ -159,11 +245,11 @@ export default function Book() {
                     required
                     value={form.email}
                     onChange={onChange}
-                    className="w-full bg-transparent border-b border-line py-3 text-ink focus:outline-none focus:border-ink transition-colors"
+                    className={fieldInputClass}
                   />
                 </div>
                 <div>
-                  <label htmlFor="session" className="block text-xs tracking-widest uppercase text-muted mb-2">
+                  <label htmlFor="session" className={fieldLabelClass}>
                     Session type
                   </label>
                   <select
@@ -171,7 +257,7 @@ export default function Book() {
                     name="session"
                     value={form.session}
                     onChange={onChange}
-                    className="w-full bg-transparent border-b border-line py-3 text-ink focus:outline-none focus:border-ink transition-colors"
+                    className={fieldInputClass}
                   >
                     <option value="grad">Grad Portrait ($140)</option>
                     <option value="portrait">Portrait / Creative Session ($100)</option>
@@ -179,7 +265,7 @@ export default function Book() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="date" className="block text-xs tracking-widest uppercase text-muted mb-2">
+                  <label htmlFor="date" className={fieldLabelClass}>
                     Preferred date (optional)
                   </label>
                   <input
@@ -188,11 +274,11 @@ export default function Book() {
                     type="date"
                     value={form.date}
                     onChange={onChange}
-                    className="w-full bg-transparent border-b border-line py-3 text-ink focus:outline-none focus:border-ink transition-colors"
+                    className={fieldInputClass}
                   />
                 </div>
                 <div>
-                  <label htmlFor="message" className="block text-xs tracking-widest uppercase text-muted mb-2">
+                  <label htmlFor="message" className={fieldLabelClass}>
                     Message
                   </label>
                   <textarea
@@ -202,18 +288,18 @@ export default function Book() {
                     required
                     value={form.message}
                     onChange={onChange}
-                    className="w-full bg-transparent border-b border-line py-3 text-ink focus:outline-none focus:border-ink resize-none transition-colors"
+                    className={`${fieldInputClass} resize-none`}
                   />
                 </div>
                 {error ? (
-                  <p className="text-sm text-ink/80 leading-relaxed" role="alert">
+                  <p className="text-[13px] text-ink/80 leading-relaxed" role="alert">
                     {error}{' '}
                     <a href={`mailto:${BOOKING_EMAIL}`} className="underline">
                       {BOOKING_EMAIL}
                     </a>
                   </p>
                 ) : null}
-                <p className="text-xs text-muted leading-relaxed">
+                <p className="text-[10px] md:text-[11px] text-muted leading-relaxed tracking-[0.04em]">
                   Inquiries go to{' '}
                   <a href={`mailto:${BOOKING_EMAIL}`} className="text-ink underline">
                     {BOOKING_EMAIL}
@@ -222,17 +308,17 @@ export default function Book() {
                 </p>
                 <button
                   type="submit"
-                  className="btn-primary w-full md:w-auto"
+                  className="btn-primary w-full md:w-auto font-mono font-light text-[13px] md:text-[14px] tracking-[0.04em]"
                   disabled={isSending}
                 >
                   {isSending ? 'Sending…' : 'Send inquiry'}
                 </button>
               </form>
             )}
-          </ScrollReveal>
+          </BookReveal>
         </div>
 
-        <ScrollReveal delay={120}>
+        <BookReveal delay={120} blindStyle={slat(3)}>
           <div className="mt-20 md:mt-28 flex justify-center">
             <div
               className="w-full max-w-2xl aspect-[3/2] overflow-hidden gallery-protected"
@@ -247,7 +333,7 @@ export default function Book() {
               />
             </div>
           </div>
-        </ScrollReveal>
+        </BookReveal>
       </section>
     </>
   )

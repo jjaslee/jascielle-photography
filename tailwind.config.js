@@ -15,6 +15,8 @@ export default {
         'salience-cool': 'rgb(var(--salience-cool) / <alpha-value>)',
       },
       fontFamily: {
+        display: ['"Pinyon Script"', 'cursive'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
         serif: ['"Playfair Display"', 'Georgia', 'serif'],
         sans: ['"Manrope"', 'system-ui', 'sans-serif'],
       },

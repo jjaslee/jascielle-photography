@@ -1,186 +1,171 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import CRTEffect from 'vault66-crt-effect'
-import 'vault66-crt-effect/style.css'
 import { useLenisRef } from '../../context/LenisContext'
 import { useSalienceHandoff } from '../../context/SalienceHandoffContext'
-import ApertureIris, {
+import {
   APERTURE_CLOSE_END,
-  APERTURE_CLOSE_START,
   apertureCloseFromChapter,
-  applyApertureClose,
 } from './ApertureIris'
 import { BLACK_HOLD_SVH } from './workEnter'
 
 const DEFINITION =
   'Perceptual salience modulation describes how the brain dynamically shifts attention toward sensory stimuli based on context, memory, and internal state.'
 
-const WARM_WORDS = new Set(['perceptual', 'salience'])
-const COOL_WORDS = new Set(['attention', 'sensory', 'stimuli', 'memory'])
-
-/** Restrained CRT values — direct package props, with scroll-driven CSS-var ramps. */
-const CRT = {
-  desktop: {
-    scanline: 0.075,
-    noise: 0.035,
-    curvature: 0.24,
-    vignette: 0.2,
-    chromatic: 0.08,
-  },
-  mobile: {
-    scanline: 0.05,
-    noise: 0.018,
-    curvature: 0.14,
-    vignette: 0.12,
-    chromatic: 0.04,
-  },
-}
-
-function wordKey(word) {
-  return word.replace(/[^\w]/g, '').toLowerCase()
-}
-
-function hueFor(word) {
-  const key = wordKey(word)
-  if (WARM_WORDS.has(key)) return 'warm'
-  if (COOL_WORDS.has(key)) return 'cool'
-  return null
-}
+const RULE_BOTTOM = [0.55, 1]
+const QUOTE_LIFT = [0.42, 0.88]
+const QUOTE_LIFT_VH = 8
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-function crtRamp(p) {
-  if (p >= APERTURE_CLOSE_END) return 0
-  const highlight = Math.min(1, p / 0.55)
-  const close = Math.min(
-    1,
-    Math.max(0, (p - APERTURE_CLOSE_START) / (APERTURE_CLOSE_END - APERTURE_CLOSE_START)),
-  )
-  return Math.min(1, highlight * 0.82 + close * 0.18)
+function clamp01(v) {
+  return Math.min(1, Math.max(0, v))
 }
 
-function applyCrtProgress(root, p) {
-  const wrapper = root?.querySelector('.crt-effect-wrapper')
-  if (!wrapper) return
-
-  const intensity = crtRamp(p)
-  const values = window.matchMedia('(max-width: 767px)').matches
-    ? CRT.mobile
-    : CRT.desktop
-
-  wrapper.style.setProperty('--scanline-opacity', String(values.scanline * intensity))
-  wrapper.style.setProperty('--noise-opacity', String(values.noise * intensity))
-  wrapper.style.setProperty('--curvature-intensity', String(values.curvature * intensity))
-  wrapper.style.setProperty('--vignette-intensity', String(values.vignette * intensity))
-  wrapper.style.setProperty('--glitch-intensity', String(values.chromatic * intensity))
-
-  const inner = root.querySelector('.crt-inner')
-  if (inner) {
-    inner.style.animationPlayState = intensity > 0.001 ? 'running' : 'paused'
-  }
-
-  const noise = root.querySelector('.crt-noise')
-  if (noise) {
-    noise.style.animationPlayState = intensity > 0.001 ? 'running' : 'paused'
-  }
+function scaleFromProgress(p, start, end) {
+  return clamp01((p - start) / Math.max(end - start, 1e-6))
 }
 
-function SalienceCRT({ children, crtRef, reducedMotion = false }) {
+function DefWord({ i, last, animated, warm = false, children }) {
+  if (!animated) {
+    return (
+      <span className={warm ? 'text-salience-warm' : undefined}>{children}</span>
+    )
+  }
   return (
-    <div ref={crtRef} className="salience-crt w-full">
-      <CRTEffect
-        theme="custom"
-        scanlineColor="#E8EDF2"
-        scanlineOpacity={reducedMotion ? 0.035 : 0}
-        scanlineThickness={1}
-        scanlineGap={4}
-        scanlineOrientation="horizontal"
-        enableScanlines
-        enableSweep={false}
-        enableGlow={false}
-        enableEdgeGlow={false}
-        enableFlicker={false}
-        enableGlitch={!reducedMotion}
-        glitchChromatic={!reducedMotion}
-        glitchIntensity={0}
-        glitchSpeed={3.5}
-        enableVignette={false}
-        vignetteIntensity={0}
-        enableCurvature={false}
-        curvatureIntensity={0}
-        enableNoise={!reducedMotion}
-        noiseOpacity={0}
-        tintText={false}
-      >
-        {children}
-      </CRTEffect>
-    </div>
+    <span
+      className={`salience-word${warm ? ' salience-word--warm' : ''}`.trim()}
+      style={{ '--t': i / last }}
+    >
+      {children}
+    </span>
   )
 }
 
-function SalienceText({ animated }) {
+function MonoRun({ words, from, to, last, animated }) {
+  const slice = words.slice(from, to + 1)
+  return slice.map((word, k) => {
+    const i = from + k
+    return (
+      <span key={`${word}-${i}`}>
+        {k > 0 ? ' ' : ''}
+        <DefWord i={i} last={last} animated={animated}>
+          {word}
+        </DefWord>
+      </span>
+    )
+  })
+}
+
+function SalienceQuote({ animated }) {
   const words = useMemo(() => DEFINITION.trim().split(/\s+/), [])
   const last = Math.max(words.length - 1, 1)
 
   return (
-    <p
-      id="salience-heading"
-      className="font-serif font-bold text-pretty text-[1.5rem] sm:text-[2rem] md:text-[2.75rem] lg:text-[4rem] leading-[1.2] md:leading-[1.12] tracking-[-0.015em]"
-    >
-      {words.map((word, i) => {
-        const hue = hueFor(word)
-        const hueClass =
-          hue === 'warm'
-            ? 'salience-word--warm'
-            : hue === 'cool'
-              ? 'salience-word--cool'
-              : ''
-        const staticClass =
-          hue === 'warm'
-            ? 'text-salience-warm'
-            : hue === 'cool'
-              ? 'text-salience-cool'
-              : 'text-salience'
-
-        return (
-          <span key={`${word}-${i}`} className="inline">
-            {animated ? (
-              <span
-                className={`salience-word ${hueClass}`.trim()}
-                style={{ '--t': i / last }}
-              >
-                {word}
-              </span>
-            ) : (
-              <span className={staticClass}>{word}</span>
-            )}
-            {i < words.length - 1 ? ' ' : ''}
-          </span>
-        )
-      })}
-    </p>
+    <div className="salience-quote">
+      <h2 id="salience-heading" className="salience-quote__title">
+        Perceptual salience modulation
+      </h2>
+      <p className="salience-quote__body">
+        <MonoRun words={words} from={3} to={8} last={last} animated={animated} />{' '}
+        <span className="salience-quote__script">
+          <DefWord i={9} last={last} animated={animated} warm>
+            attention
+          </DefWord>
+        </span>
+        <br className="hidden md:block" />
+        <MonoRun
+          words={words}
+          from={10}
+          to={10}
+          last={last}
+          animated={animated}
+        />{' '}
+        <span className="salience-quote__script">
+          <DefWord i={11} last={last} animated={animated} warm>
+            sensory
+          </DefWord>{' '}
+          <DefWord i={12} last={last} animated={animated} warm>
+            stimuli
+          </DefWord>
+        </span>{' '}
+        <MonoRun
+          words={words}
+          from={13}
+          to={15}
+          last={last}
+          animated={animated}
+        />
+        <br className="hidden md:block" />
+        <span className="salience-quote__script">
+          <DefWord i={16} last={last} animated={animated} warm>
+            memory,
+          </DefWord>
+        </span>{' '}
+        <MonoRun
+          words={words}
+          from={17}
+          to={19}
+          last={last}
+          animated={animated}
+        />
+      </p>
+    </div>
   )
 }
 
-/**
- * Salience chapter: text highlight + restrained CRT treatment + aperture close.
- * After full closure + brief black hold, the iris is removed (not reopened).
- * WorkChapter owns the assemble-over-black sequence underneath.
- */
+function QuoteFrame({
+  animated,
+  topRuleRef,
+  bottomRuleRef,
+  staticRules = false,
+}) {
+  const ruleClass = staticRules
+    ? 'salience-rule salience-rule--static'
+    : 'salience-rule'
+
+  const ruleStyle = staticRules
+    ? undefined
+    : { transform: 'scaleY(0)', transformOrigin: 'top center' }
+
+  return (
+    <div className="flex h-full w-full flex-col items-center pt-16 md:pt-20 pb-8">
+      <div className="flex min-h-0 w-full flex-1 justify-center">
+        <div
+          ref={topRuleRef}
+          className={ruleClass}
+          style={ruleStyle}
+          aria-hidden
+        />
+      </div>
+      <div className="salience-quote__frame w-full max-w-[58rem] shrink-0">
+        <SalienceQuote animated={animated} />
+      </div>
+      <div className="flex min-h-0 w-full flex-1 justify-center">
+        <div
+          ref={bottomRuleRef}
+          className={staticRules ? ruleClass : 'salience-rule salience-rule--drop'}
+          style={staticRules ? undefined : ruleStyle}
+          aria-hidden
+        />
+      </div>
+    </div>
+  )
+}
+
+/** Salience chapter: editorial quote + scroll-scrubbed rules. Work handoff timing is unchanged. */
 export default function SalienceSection() {
   const chapterRef = useRef(null)
   const stageRef = useRef(null)
   const textRef = useRef(null)
-  const irisRef = useRef(null)
-  const irisSvgRef = useRef(null)
-  const crtRef = useRef(null)
-  const holdRafRef = useRef(0)
+  const topRuleRef = useRef(null)
+  const bottomRuleRef = useRef(null)
   const lenisRef = useLenisRef()
   const { setHandoff } = useSalienceHandoff()
   const [reducedMotion, setReducedMotion] = useState(() =>
     typeof window === 'undefined' ? false : prefersReducedMotion(),
   )
+
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
     const sync = () => setReducedMotion(media.matches)
@@ -198,20 +183,9 @@ export default function SalienceSection() {
     const chapter = chapterRef.current
     const stage = stageRef.current
     const text = textRef.current
-    if (!chapter || !stage || !text) return
-
-    const setIrisReleasedVisual = (released) => {
-      const svg =
-        irisSvgRef.current ||
-        irisRef.current?.ownerSVGElement ||
-        null
-      if (svg) {
-        irisSvgRef.current = svg
-        // Keep geometry at full close underneath; hide so Work can assemble.
-        svg.style.visibility = released ? 'hidden' : 'visible'
-        svg.style.opacity = released ? '0' : '1'
-      }
-    }
+    const topRule = topRuleRef.current
+    const bottomRule = bottomRuleRef.current
+    if (!chapter || !stage) return
 
     const updateProgress = () => {
       const rect = chapter.getBoundingClientRect()
@@ -221,60 +195,60 @@ export default function SalienceSection() {
       const highlight = Math.min(1, p / 0.55)
       const close = apertureCloseFromChapter(p)
       const past = rect.bottom <= 0
-      const holdSpan = range > 0 ? (BLACK_HOLD_SVH / 100) * vh / range : 0
+      const holdSpan = range > 0 ? ((BLACK_HOLD_SVH / 100) * vh) / range : 0
       const releaseAt = APERTURE_CLOSE_END + holdSpan
 
       stage.style.setProperty('--salience-p', String(highlight))
-      applyCrtProgress(crtRef.current, p)
 
-      // Keep the content present until the final blade state is reached.
-      const showText = close < 0.999
-      text.style.opacity = showText ? '1' : '0'
+      // Top rule starts at the first hero scroll and finishes as the quote takes the screen.
+      const hero = chapter.previousElementSibling
+      const heroTop = hero
+        ? hero.getBoundingClientRect().top
+        : rect.top - vh
+      const topScale = clamp01(-heroTop / Math.max(vh, 1))
 
-      if (holdRafRef.current) {
-        cancelAnimationFrame(holdRafRef.current)
-        holdRafRef.current = 0
+      if (topRule) {
+        topRule.style.transform = `scaleY(${topScale})`
+      }
+
+      const lift = scaleFromProgress(p, QUOTE_LIFT[0], QUOTE_LIFT[1])
+      if (text) {
+        text.style.transform = `translate3d(0, ${-lift * QUOTE_LIFT_VH}vh, 0)`
+      }
+
+      if (bottomRule) {
+        const GAP = 24
+        const grow = scaleFromProgress(p, RULE_BOTTOM[0], RULE_BOTTOM[1])
+        const start = bottomRule.getBoundingClientRect().top
+        const heading = document.getElementById('featured-heading')
+        const featuredTop = heading
+          ? heading.getBoundingClientRect().top
+          : Number.POSITIVE_INFINITY
+        const target = Math.min(featuredTop, vh) - GAP
+        const available = Math.max(target - start, 0)
+        bottomRule.style.transform = 'none'
+        bottomRule.style.height = `${past ? 0 : Math.round(available * grow)}px`
       }
 
       if (past) {
-        applyApertureClose(irisRef.current, 1)
-        setIrisReleasedVisual(true)
-        stage.dataset.irisReleased = '1'
         setHandoff({ progress: 1, apertureClose: 1, irisReleased: true })
         return
       }
 
       if (close >= 0.999) {
-        applyApertureClose(irisRef.current, 1)
-        // Scroll-linked black hold — reversible, no timer.
-        const released = p >= releaseAt
-        setIrisReleasedVisual(released)
-        stage.dataset.irisReleased = released ? '1' : '0'
         setHandoff({
           progress: p,
           apertureClose: 1,
-          irisReleased: released,
+          irisReleased: p >= releaseAt,
         })
         return
       }
 
-      // Scrolling back through the close — restore iris. Keep blades closed
-      // until Work has mostly retracted so we never reopen onto half-assembled rows.
-      const workEl = document.getElementById('work')
-      const enterP = Number(workEl?.dataset.enterProgress || 0)
-      const keepClosedForRetract = enterP > 0.12
-      const visualClose = keepClosedForRetract ? 1 : close
-      setIrisReleasedVisual(false)
-      stage.dataset.irisReleased = '0'
-      applyApertureClose(irisRef.current, visualClose)
       setHandoff({
         progress: p,
         apertureClose: close,
         irisReleased: false,
       })
-      if (keepClosedForRetract) {
-        holdRafRef.current = requestAnimationFrame(updateProgress)
-      }
     }
 
     updateProgress()
@@ -302,7 +276,6 @@ export default function SalienceSection() {
 
     return () => {
       cancelAnimationFrame(raf)
-      if (holdRafRef.current) cancelAnimationFrame(holdRafRef.current)
       detachLenis()
       window.removeEventListener('resize', onResize)
       window.removeEventListener('scroll', updateProgress)
@@ -313,14 +286,10 @@ export default function SalienceSection() {
     return (
       <section
         id="salience"
-        className="relative z-40 bg-canvas text-ink section-pad py-28 md:py-40 lg:py-48"
+        className="relative z-40 flex min-h-[100svh] bg-canvas text-salience section-pad"
         aria-labelledby="salience-heading"
       >
-        <div className="w-full max-w-[960px] mx-auto">
-          <SalienceCRT crtRef={crtRef} reducedMotion>
-            <SalienceText animated={false} />
-          </SalienceCRT>
-        </div>
+        <QuoteFrame animated={false} staticRules />
       </section>
     )
   }
@@ -329,23 +298,23 @@ export default function SalienceSection() {
     <section
       id="salience"
       ref={chapterRef}
-      className="relative z-40 h-[340svh] bg-transparent text-ink pointer-events-none"
+      className="relative z-40 h-[220svh] bg-canvas text-salience pointer-events-none"
       aria-labelledby="salience-heading"
     >
       <div
         ref={stageRef}
-        className="salience-stage pointer-events-none sticky top-0 z-40 h-[100svh] overflow-hidden bg-transparent"
+        className="salience-stage pointer-events-none sticky top-0 z-40 h-[100svh] bg-canvas"
       >
         <div
           ref={textRef}
-          className="absolute inset-0 z-10 flex items-center section-pad bg-canvas pointer-events-none"
+          className="absolute inset-0 z-10 flex items-center section-pad bg-canvas pointer-events-none will-change-transform"
         >
-          <SalienceCRT crtRef={crtRef}>
-            <SalienceText animated />
-          </SalienceCRT>
+          <QuoteFrame
+            animated
+            topRuleRef={topRuleRef}
+            bottomRuleRef={bottomRuleRef}
+          />
         </div>
-
-        <ApertureIris pathRef={irisRef} />
       </div>
     </section>
   )

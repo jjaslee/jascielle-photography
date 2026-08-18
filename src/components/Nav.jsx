@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { scrollToWork, useLenisRef } from '../context/LenisContext'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import ThemeToggle from './ThemeToggle'
+import BlindExitLink from './BlindExitLink'
 
 const links = [
-  { to: '/#work', label: 'Work', hash: 'work' },
+  { to: '/work', label: 'Work' },
   { to: '/about', label: 'About' },
   { to: '/book', label: 'Book' },
 ]
@@ -12,24 +12,10 @@ const links = [
 export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
-  const navigate = useNavigate()
-  const lenisRef = useLenisRef()
 
   useEffect(() => {
     setMenuOpen(false)
-  }, [location.pathname, location.hash])
-
-  const onWorkClick = (e) => {
-    e.preventDefault()
-    if (location.pathname !== '/') {
-      navigate('/#work')
-      return
-    }
-    if (location.hash !== '#work') {
-      window.history.replaceState(null, '', '/#work')
-    }
-    scrollToWork(lenisRef?.current)
-  }
+  }, [location.pathname])
 
   return (
     <header
@@ -37,39 +23,24 @@ export default function Nav() {
       className="fixed top-0 left-0 right-0 z-50 bg-canvas border-b border-line"
     >
       <nav className="section-pad flex items-center justify-between h-14 md:h-16">
-        <Link
+        <BlindExitLink
           to="/"
-          className="font-serif text-lg md:text-xl font-bold tracking-nav text-ink shrink-0"
+          className="font-display text-lg md:text-xl tracking-nav text-ink shrink-0"
           aria-label="Jascielle Photography, home"
         >
           Jascielle
-        </Link>
+        </BlindExitLink>
 
         <div className="hidden md:flex items-center gap-8 lg:gap-10">
-          {links.map(({ to, label, hash }) =>
-            hash ? (
-              <a
-                key={to}
-                href={to}
-                onClick={onWorkClick}
-                className="text-[11px] md:text-xs font-semibold tracking-nav uppercase text-ink/90 hover:text-ink transition-colors"
-              >
-                {label}
-              </a>
-            ) : (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `text-[11px] md:text-xs font-semibold tracking-nav uppercase transition-colors ${
-                    isActive ? 'text-ink' : 'text-ink/90 hover:text-ink'
-                  }`
-                }
-              >
-                {label}
-              </NavLink>
-            ),
-          )}
+          {links.map(({ to, label }) => (
+            <BlindExitLink
+              key={to}
+              to={to}
+              className="font-mono text-[11px] md:text-xs font-light tracking-nav uppercase transition-colors text-ink/90 hover:text-salience-warm"
+            >
+              {label}
+            </BlindExitLink>
+          ))}
           <ThemeToggle />
         </div>
 
@@ -90,29 +61,15 @@ export default function Nav() {
 
       {menuOpen && (
         <div className="md:hidden border-t border-line bg-canvas section-pad py-8 flex flex-col gap-6">
-          {links.map(({ to, label, hash }) =>
-            hash ? (
-              <a
-                key={to}
-                href={to}
-                onClick={(e) => {
-                  onWorkClick(e)
-                  setMenuOpen(false)
-                }}
-                className="text-sm font-semibold tracking-nav uppercase text-ink"
-              >
-                {label}
-              </a>
-            ) : (
-              <NavLink
-                key={to}
-                to={to}
-                className="text-sm font-semibold tracking-nav uppercase text-ink"
-              >
-                {label}
-              </NavLink>
-            ),
-          )}
+          {links.map(({ to, label }) => (
+            <BlindExitLink
+              key={to}
+              to={to}
+              className="font-mono text-sm font-light tracking-nav uppercase text-ink transition-colors hover:text-salience-warm"
+            >
+              {label}
+            </BlindExitLink>
+          ))}
         </div>
       )}
     </header>

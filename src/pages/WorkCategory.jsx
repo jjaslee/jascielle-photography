@@ -23,7 +23,7 @@ export default function WorkCategory() {
         the homepage for now.
       </p>
       <Link
-        to="/#work"
+        to="/work"
         className="mt-10 inline-block font-sans text-xs font-semibold tracking-editorial uppercase text-ink/70 hover:text-ink transition-colors"
       >
         ← Work

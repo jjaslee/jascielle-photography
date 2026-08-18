@@ -7,7 +7,7 @@ import { useScrollToTopOnNavigate } from '../hooks/useScrollToTop'
 export default function Layout() {
   useScrollToTopOnNavigate()
   const { pathname } = useLocation()
-  // Home concludes inside SpatialFieldChapter (CTA + quiet meta). Avoid a second footer.
+  // Home concludes inside Featured (hover label + quiet meta). Avoid a second footer.
   const showFooter = pathname !== '/'
 
   return (
