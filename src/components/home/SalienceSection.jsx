@@ -72,7 +72,7 @@ function SalienceQuote({ animated }) {
           <DefWord i={9} last={last} animated={animated} warm>
             attention
           </DefWord>
-        </span>
+        </span>{' '}
         <br className="hidden md:block" />
         <MonoRun
           words={words}

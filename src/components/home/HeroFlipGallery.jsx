@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import ProtectedImage from '../ProtectedImage'
 import HeroImageLayers from './HeroImageLayers'
+import { computeHeroPointer } from '../../utils/heroProximity'
 
 const TILT_MAX_X = 7
 const TILT_MAX_Y = 10
@@ -14,6 +15,8 @@ const TILT_LERP = 0.1
 const ORIENTATION_RANGE_DEG = 25
 const MOBILE_TILT_MAX_X = 3.5
 const MOBILE_TILT_MAX_Y = 5
+const TOUCH_TILT_MAX_X = 1.5
+const TOUCH_TILT_MAX_Y = 2
 
 function canTilt() {
   return (
@@ -30,6 +33,13 @@ function canUseOrientation() {
   return (
     typeof window !== 'undefined' &&
     'DeviceOrientationEvent' in window &&
+    window.matchMedia('(pointer: coarse)').matches
+  )
+}
+
+function canUseTouchTilt() {
+  return (
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
     window.matchMedia('(pointer: coarse)').matches
   )
 }
@@ -56,7 +66,14 @@ function screenAdjustedAxes(beta, gamma) {
   }
 }
 
-function HeroSlide({ image, stageRef, orientationRef, motionKicksRef }) {
+function HeroSlide({
+  image,
+  stageRef,
+  orientationRef,
+  motionKicksRef,
+  interactionEnabledRef,
+  heroPointerRef,
+}) {
   if (image.layers) {
     return (
       <HeroImageLayers
@@ -65,6 +82,8 @@ function HeroSlide({ image, stageRef, orientationRef, motionKicksRef }) {
         stageRef={stageRef}
         orientationRef={orientationRef}
         motionKicksRef={motionKicksRef}
+        interactionEnabledRef={interactionEnabledRef}
+        heroPointerRef={heroPointerRef}
       />
     )
   }
@@ -82,7 +101,8 @@ function HeroSlide({ image, stageRef, orientationRef, motionKicksRef }) {
   )
 }
 
-export default function HeroFlipGallery({ images }) {
+export default function HeroFlipGallery({ images, interactionEnabledRef }) {
+  const interactionRef = interactionEnabledRef ?? { current: true }
   const stageRef = useRef(null)
   const tiltRef = useRef(null)
   const flipRef = useRef(null)
@@ -93,6 +113,7 @@ export default function HeroFlipGallery({ images }) {
   const touchStartRef = useRef(null)
   const orientationRef = useRef({ x: 0, y: 0, available: false })
   const motionKicksRef = useRef(new Set())
+  const heroPointerRef = useRef({ nx: 0, ny: 0, influence: 0, touching: false })
   const orientationBaselineRef = useRef(null)
   const orientationPermissionRef = useRef('idle')
   const orientationCleanupRef = useRef(null)
@@ -233,9 +254,8 @@ export default function HeroFlipGallery({ images }) {
           duration: FLIP_DURATION,
           ease: 'power2.inOut',
           onComplete: () => {
-            // Keep the card edge-on while React swaps the visible face.
+            // Keep the visible back face unchanged until the card resets.
             setIndex(targetIndex)
-            setBackIndex(wrap(targetIndex + 1))
             flipSettleFrameRef.current = requestAnimationFrame(() => {
               flipSettleFrameRef.current = 0
               if (!flipRef.current) {
@@ -243,6 +263,7 @@ export default function HeroFlipGallery({ images }) {
                 return
               }
               gsap.set(flipRef.current, { rotateY: 0 })
+              setBackIndex(wrap(targetIndex + 1))
               flippingRef.current = false
             })
           },
@@ -303,8 +324,9 @@ export default function HeroFlipGallery({ images }) {
     const stage = stageRef.current
     const tiltEl = tiltRef.current
     const pointerTilt = canTilt()
+    const touchTilt = !pointerTilt && canUseTouchTilt()
     const orientationTilt = !pointerTilt && canUseOrientation()
-    if (!stage || !tiltEl || (!pointerTilt && !orientationTilt)) return
+    if (!stage || !tiltEl || (!pointerTilt && !touchTilt && !orientationTilt)) return
 
     const pointerTarget = { x: 0, y: 0 }
     const current = { x: 0, y: 0 }
@@ -312,13 +334,28 @@ export default function HeroFlipGallery({ images }) {
     let running = true
 
     const apply = () => {
+      if (!interactionRef.current) {
+        current.x = 0
+        current.y = 0
+        tiltEl.style.transform = 'rotateX(0deg) rotateY(0deg)'
+        raf = 0
+        return
+      }
       const orientation = orientationRef.current
-      const targetX = pointerTilt
-        ? pointerTarget.x
-        : -orientation.y * MOBILE_TILT_MAX_X
-      const targetY = pointerTilt
-        ? pointerTarget.y
-        : orientation.x * MOBILE_TILT_MAX_Y
+      const touch = heroPointerRef.current
+      let targetX = 0
+      let targetY = 0
+
+      if (pointerTilt) {
+        targetX = pointerTarget.x
+        targetY = pointerTarget.y
+      } else if (touchTilt && touch.touching && !flippingRef.current) {
+        targetX = -touch.ny * TOUCH_TILT_MAX_X
+        targetY = touch.nx * TOUCH_TILT_MAX_Y
+      } else if (orientationTilt) {
+        targetX = -orientation.y * MOBILE_TILT_MAX_X
+        targetY = orientation.x * MOBILE_TILT_MAX_Y
+      }
       current.x += (targetX - current.x) * TILT_LERP
       current.y += (targetY - current.y) * TILT_LERP
       tiltEl.style.transform = `rotateX(${current.x}deg) rotateY(${current.y}deg)`
@@ -330,48 +367,60 @@ export default function HeroFlipGallery({ images }) {
     }
 
     const kick = () => {
-      if (!running || raf) return
+      if (!interactionRef.current || !running || raf) return
       raf = requestAnimationFrame(apply)
     }
 
     const onMove = (e) => {
+      if (!interactionRef.current) return
       const rect = stage.getBoundingClientRect()
-      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1
-      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1
-      pointerTarget.x = -ny * TILT_MAX_X
-      pointerTarget.y = nx * TILT_MAX_Y
+      const pointer = computeHeroPointer(e.clientX, e.clientY, rect)
+      heroPointerRef.current = pointer
+
+      if (pointer.influence <= 0) {
+        pointerTarget.x = 0
+        pointerTarget.y = 0
+      } else {
+        pointerTarget.x = -pointer.ny * TILT_MAX_X * pointer.influence
+        pointerTarget.y = pointer.nx * TILT_MAX_Y * pointer.influence
+      }
       kick()
+      motionKicksRef.current.forEach((fn) => fn())
     }
 
     const onLeave = () => {
+      if (!interactionRef.current) return
+      heroPointerRef.current = { nx: 0, ny: 0, influence: 0, touching: false }
       pointerTarget.x = 0
       pointerTarget.y = 0
       kick()
+      motionKicksRef.current.forEach((fn) => fn())
     }
 
     if (pointerTilt) {
-      stage.addEventListener('mousemove', onMove)
-      stage.addEventListener('mouseleave', onLeave)
+      window.addEventListener('mousemove', onMove, { passive: true })
+      document.documentElement.addEventListener('mouseleave', onLeave)
     }
-    if (orientationTilt) motionKicksRef.current.add(kick)
+    if (touchTilt || orientationTilt) motionKicksRef.current.add(kick)
 
     return () => {
       running = false
       cancelAnimationFrame(raf)
       if (pointerTilt) {
-        stage.removeEventListener('mousemove', onMove)
-        stage.removeEventListener('mouseleave', onLeave)
+        window.removeEventListener('mousemove', onMove)
+        document.documentElement.removeEventListener('mouseleave', onLeave)
       }
-      if (orientationTilt) motionKicksRef.current.delete(kick)
+      if (touchTilt || orientationTilt) motionKicksRef.current.delete(kick)
     }
   }, [])
 
   const onPointerDown = () => {
+    if (!interactionRef.current) return
     resetAutoplay()
-    requestOrientationAccess()
   }
 
   const onClick = (e) => {
+    if (!interactionRef.current) return
     resetAutoplay()
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
@@ -379,13 +428,40 @@ export default function HeroFlipGallery({ images }) {
     else flipForward()
   }
 
+  const updateTouchTilt = (touch) => {
+    if (!touch || !canUseTouchTilt() || flippingRef.current) return
+    const rect = stageRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const halfW = Math.max(rect.width * 0.5, 1)
+    const halfH = Math.max(rect.height * 0.5, 1)
+    const nx = Math.max(-1, Math.min(1, (touch.clientX - rect.left - halfW) / halfW))
+    const ny = Math.max(-1, Math.min(1, (touch.clientY - rect.top - halfH) / halfH))
+    heroPointerRef.current = { nx, ny, influence: 1, touching: true }
+    motionKicksRef.current.forEach((kick) => kick())
+  }
+
+  const releaseTouchTilt = () => {
+    heroPointerRef.current = { nx: 0, ny: 0, influence: 0, touching: false }
+    motionKicksRef.current.forEach((kick) => kick())
+  }
+
   const onTouchStart = (e) => {
-    touchStartRef.current = e.touches[0]?.clientX ?? null
+    if (!interactionRef.current) return
+    const touch = e.touches[0]
+    touchStartRef.current = touch?.clientX ?? null
+    updateTouchTilt(touch)
     resetAutoplay()
-    requestOrientationAccess()
+  }
+
+  const onTouchMove = (e) => {
+    if (!interactionRef.current) return
+    updateTouchTilt(e.touches[0])
   }
 
   const onTouchEnd = (e) => {
+    if (!interactionRef.current) return
+    releaseTouchTilt()
+    requestOrientationAccess()
     const start = touchStartRef.current
     if (start == null) return
     const end = e.changedTouches[0]?.clientX ?? start
@@ -402,6 +478,11 @@ export default function HeroFlipGallery({ images }) {
     else flipBackward()
   }
 
+  const onTouchCancel = () => {
+    touchStartRef.current = null
+    releaseTouchTilt()
+  }
+
   const front = images[index]
   const back = images[backIndex]
 
@@ -412,7 +493,9 @@ export default function HeroFlipGallery({ images }) {
       onClick={onClick}
       onPointerDown={onPointerDown}
       onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchCancel}
       role="group"
       aria-roledescription="carousel"
       aria-label={`Hero photograph ${index + 1} of ${count}`}
@@ -420,28 +503,41 @@ export default function HeroFlipGallery({ images }) {
       <div
         ref={tiltRef}
         className="relative h-full w-full will-change-transform"
-        style={{ transformStyle: 'preserve-3d' }}
+        style={{
+          transformStyle: 'preserve-3d',
+          WebkitTransformStyle: 'preserve-3d',
+        }}
       >
         <div
           ref={flipRef}
           className="relative h-full w-full"
-          style={{ transformStyle: 'preserve-3d' }}
+          style={{
+            transformStyle: 'preserve-3d',
+            WebkitTransformStyle: 'preserve-3d',
+          }}
         >
           <div
             className="hero-flip-face absolute inset-0 overflow-hidden bg-canvas"
-            style={{ backfaceVisibility: 'hidden' }}
+            style={{
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'rotateY(0deg)',
+            }}
           >
             <HeroSlide
               image={front}
               stageRef={stageRef}
               orientationRef={orientationRef}
               motionKicksRef={motionKicksRef}
+              interactionEnabledRef={interactionRef}
+              heroPointerRef={heroPointerRef}
             />
           </div>
           <div
             className="hero-flip-face absolute inset-0 overflow-hidden bg-canvas"
             style={{
               backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
             }}
           >
@@ -450,6 +546,8 @@ export default function HeroFlipGallery({ images }) {
               stageRef={stageRef}
               orientationRef={orientationRef}
               motionKicksRef={motionKicksRef}
+              interactionEnabledRef={interactionRef}
+              heroPointerRef={heroPointerRef}
             />
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Scene, ScrollTransform, useSceneContext } from 'react-kino'
+import { calcElementProgress } from '@react-kino/core'
 import { featuredWork } from '../../data/galleries'
 import ProtectedImage from '../ProtectedImage'
 import BarrelRollLabel from '../BarrelRollLabel'
@@ -10,6 +11,8 @@ import { useLenisRef } from '../../context/LenisContext'
 
 const DEFAULT_FOOTER_LABEL = 'Jascielle Photography'
 const CHAPTER_SVH = 340
+const MOBILE_CHAPTER_SVH = 100
+const MOBILE_FEATURED_OFFSETS = ['start 76%', 'end end']
 const SETTLED = 0.9
 const REVEAL_FRACTION = 0.55
 const APPROACH_LEAD = 0.26
@@ -69,6 +72,10 @@ function easeOutQuint(t) {
   return 1 - (1 - clamp01(t)) ** 9
 }
 
+function easeOutCubic(t) {
+  return 1 - (1 - clamp01(t)) ** 3
+}
+
 function easeOutGrid(t) {
   return 1 - (1 - clamp01(t)) ** 6
 }
@@ -91,6 +98,16 @@ function featuredProgress(sceneProgress, headingTop, viewportHeight) {
         : 0
 
   return Math.max(approachP, pinP)
+}
+
+function featuredProgressMobile(featuredEl, scrollY, viewportHeight) {
+  const rect = featuredEl.getBoundingClientRect()
+  return calcElementProgress(MOBILE_FEATURED_OFFSETS, {
+    elementTop: rect.top + scrollY,
+    elementHeight: featuredEl.offsetHeight,
+    viewportHeight,
+    scrollY,
+  })
 }
 
 function FeaturedPrint({ index, progress, settledRef, finePointerRef, children }) {
@@ -138,6 +155,14 @@ function FeaturedFooter({ footerLabel, year, onFooterNavClick }) {
         </span>
       </p>
       <nav className="featured-meta__nav" aria-label="Footer">
+        <Link
+          to="/book"
+          state={SMOOTH_SCROLL_STATE}
+          onClick={onFooterNavClick('/book')}
+        >
+          Book
+        </Link>
+        <span className="featured-meta__sep" aria-hidden="true">·</span>
         <a
           href="https://www.instagram.com/jascielle_photos/"
           target="_blank"
@@ -149,11 +174,11 @@ function FeaturedFooter({ footerLabel, year, onFooterNavClick }) {
         <a href="mailto:jascielle.photos@gmail.com">Email</a>
         <span className="featured-meta__sep" aria-hidden="true">·</span>
         <Link
-          to="/book"
+          to="/privacy"
           state={SMOOTH_SCROLL_STATE}
-          onClick={onFooterNavClick('/book')}
+          onClick={onFooterNavClick('/privacy')}
         >
-          Book
+          Privacy
         </Link>
       </nav>
       <p className="featured-meta__copy">© {year}</p>
@@ -170,6 +195,7 @@ function FeaturedStage({
   finePointerRef,
   setHoverIfSettled,
   clearHover,
+  pinScene,
 }) {
   const { progress: sceneProgress } = useSceneContext()
   const lenisRef = useLenisRef()
@@ -192,7 +218,19 @@ function FeaturedStage({
   useEffect(() => {
     const update = () => {
       const headingTop = headingRef.current?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY
-      const p = featuredProgress(sceneProgress, headingTop, window.innerHeight)
+      const viewportHeight = window.innerHeight
+      const scrollY = window.scrollY
+      let p
+
+      if (!pinScene) {
+        const featured = document.getElementById('featured')
+        p = featured
+          ? featuredProgressMobile(featured, scrollY, viewportHeight)
+          : 0
+      } else {
+        p = featuredProgress(sceneProgress, headingTop, viewportHeight)
+      }
+
       setProgress(p)
 
       // Imperatively drive final-phase transforms to avoid per-frame re-renders
@@ -246,7 +284,7 @@ function FeaturedStage({
       window.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
     }
-  }, [sceneProgress, lenisRef])
+  }, [sceneProgress, lenisRef, pinScene])
 
   // Auto-pulse CTA every ~10s
   useEffect(() => {
@@ -271,7 +309,7 @@ function FeaturedStage({
   return (
     <section
       id="featured"
-      className="featured-stage flex h-full flex-col overflow-x-clip bg-canvas text-ink"
+      className="featured-stage flex flex-col overflow-x-clip bg-canvas text-ink md:min-h-[100svh] md:h-full"
       aria-labelledby="featured-heading"
     >
       <h2
@@ -283,7 +321,7 @@ function FeaturedStage({
       </h2>
 
       {/* Desktop: row with grid + CTA side by side. Mobile: grid stacked, CTA below. */}
-      <div className="flex min-h-0 flex-1 flex-col items-center px-6 pt-0 -translate-y-5 md:-translate-y-6 md:px-12">
+      <div className="flex flex-col items-center px-6 pt-0 pb-12 -translate-y-5 md:min-h-0 md:flex-1 md:pb-0 md:-translate-y-6 md:px-12">
         {/* Outer row — centers the [grid + CTA] pair on desktop */}
         <div className="relative flex items-center justify-center">
           {/* Photo group — shifts left on desktop final phase */}
@@ -320,6 +358,7 @@ function FeaturedStage({
                         loading="lazy"
                         decoding="async"
                         draggable={false}
+                        style={item.objectPosition ? { objectPosition: item.objectPosition } : undefined}
                       />
                     </Link>
                   </FeaturedPrint>
@@ -327,10 +366,10 @@ function FeaturedStage({
               ))}
             </ul>
 
-            {/* Mobile CTA — below the grid, right-aligned */}
+            {/* Mobile CTA — below the grid, centered */}
             <div
               ref={mobileCtaRef}
-              className="featured-cta-mobile md:hidden mt-6 flex justify-end"
+              className="featured-cta-mobile md:hidden mt-6 flex justify-center"
             >
               <Link
                 to="/work"
@@ -373,6 +412,15 @@ function FeaturedStage({
 
 export default function Featured({ items = featuredWork }) {
   const [hoveredId, setHoveredId] = useState(null)
+  const [pinScene, setPinScene] = useState(() =>
+    typeof window === 'undefined' ? true : window.matchMedia('(min-width: 768px)').matches,
+  )
+  const [sceneDuration, setSceneDuration] = useState(() => {
+    if (typeof window === 'undefined') return `${CHAPTER_SVH}svh`
+    return window.matchMedia('(min-width: 768px)').matches
+      ? `${CHAPTER_SVH}svh`
+      : `${MOBILE_CHAPTER_SVH}svh`
+  })
   const [reducedMotion, setReducedMotion] = useState(() =>
     typeof window === 'undefined' ? false : prefersReducedMotion(),
   )
@@ -385,6 +433,42 @@ export default function Featured({ items = featuredWork }) {
   const year = new Date().getFullYear()
 
   const clearHover = () => setHoveredId(null)
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)')
+    const sync = () => setPinScene(media.matches)
+    sync()
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    if (pinScene) {
+      setSceneDuration(`${CHAPTER_SVH}svh`)
+      return
+    }
+
+    const featured = document.getElementById('featured')
+    if (!featured) return
+
+    const measure = () => {
+      const vh = window.innerHeight || 1
+      const contentH = featured.getBoundingClientRect().height
+      const svh = Math.max(Math.ceil(contentH / vh), 100)
+      setSceneDuration(`${svh}svh`)
+    }
+
+    const raf = requestAnimationFrame(measure)
+    const ro = new ResizeObserver(measure)
+    ro.observe(featured)
+    window.addEventListener('resize', measure)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [pinScene, items])
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -427,7 +511,7 @@ export default function Featured({ items = featuredWork }) {
                 <li key={item.id} className="featured-item">
                   <div className="featured-print">
                     <Link to={item.to} aria-label={item.title}>
-                      <ProtectedImage src={item.image} alt={item.alt} loading="lazy" decoding="async" draggable={false} />
+                      <ProtectedImage src={item.image} alt={item.alt} loading="lazy" decoding="async" draggable={false} style={item.objectPosition ? { objectPosition: item.objectPosition } : undefined} />
                     </Link>
                   </div>
                 </li>
@@ -442,7 +526,7 @@ export default function Featured({ items = featuredWork }) {
             </div>
           </div>
           {/* Mobile CTA */}
-          <div className="md:hidden mt-6 flex justify-end w-full max-w-[min(86vw,22rem)]">
+          <div className="md:hidden mt-6 flex justify-center w-full max-w-[min(86vw,22rem)]">
             <Link to="/work" aria-label="View all work" className="featured-cta-link font-mono font-light text-[13px] tracking-[0.08em] uppercase text-ink/70">
               <BarrelRollLabel text="View all work" />{' '}
               <span className="featured-cta-arrow">→</span>
@@ -456,7 +540,8 @@ export default function Featured({ items = featuredWork }) {
 
   return (
     <Scene
-      duration={`${CHAPTER_SVH}svh`}
+      duration={sceneDuration}
+      pin={pinScene}
       className="relative z-10 bg-canvas text-ink"
       style={{ overflow: 'visible' }}
     >
@@ -469,6 +554,7 @@ export default function Featured({ items = featuredWork }) {
         finePointerRef={finePointerRef}
         setHoverIfSettled={setHoverIfSettled}
         clearHover={clearHover}
+        pinScene={pinScene}
       />
     </Scene>
   )

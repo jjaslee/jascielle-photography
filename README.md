@@ -19,7 +19,7 @@ npm run preview
 
 ## Add your photos
 
-Place images in `public/images/portraits`, `events`, and `places`, then update `src/data/galleries.js`.
+Use the local [Photo Catalog Manager](docs/photo-manager.md) to add, edit, audit, and validate Work photographs.
 
 ## Book form (Formspree)
 

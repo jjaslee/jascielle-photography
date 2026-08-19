@@ -6,7 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "photo:manage": "node scripts/photo-manager/cli.mjs manage",
+    "photo:add": "node scripts/photo-manager/cli.mjs add",
+    "photo:edit": "node scripts/photo-manager/cli.mjs edit",
+    "photo:audit": "node scripts/photo-manager/cli.mjs audit",
+    "photo:validate": "node scripts/photo-manager/cli.mjs validate",
+    "photo:verify-migration": "node scripts/photo-manager/verify-migration.mjs",
+    "photo:test": "node --test scripts/photo-manager/test/*.test.mjs"
   },
   "dependencies": {
     "gsap": "^3.15.0",
@@ -18,9 +25,11 @@
     "vault66-crt-effect": "^3.1.1"
   },
   "devDependencies": {
+    "@inquirer/prompts": "^8.5.2",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.15",
     "vite": "^5.4.11"
   }

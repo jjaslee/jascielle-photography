@@ -6,12 +6,16 @@ import { homeWorkCategories } from '../../data/galleries'
 import {
   blindCloseTotalMs,
   faceStyleFromRowProgress,
+  leadingBlindProgress,
   rowBlindProgress,
   ruleStyleFromRowProgress,
 } from './workBlind'
 import { useBlindExit } from '../../context/BlindExitContext'
+import BlindExitLink from '../BlindExitLink'
+import BarrelRollLabel from '../BarrelRollLabel'
 
 const PREVIEW_MS = 360
+const LEADING_SLATS = 1
 const LERP = 0.08
 const OFFSET = 28
 const PAD = 22
@@ -239,7 +243,7 @@ export default function WorkRows({ categories = homeWorkCategories }) {
     const reduceMotion =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const duration = reduceMotion ? 0 : blindCloseTotalMs(categories.length)
+    const duration = reduceMotion ? 0 : blindCloseTotalMs(categories.length, LEADING_SLATS)
 
     const finish = () => {
       if (blindRafRef.current) {
@@ -291,7 +295,10 @@ export default function WorkRows({ categories = homeWorkCategories }) {
 
   const shellVisible = previewOpen && Boolean(current) && shellPlacedRef.current
   const count = categories.length
-  const headingP = rowBlindProgress(blindProgress, 0, false, count)
+  const headingP = rowBlindProgress(blindProgress, 0, false, count, LEADING_SLATS)
+  const ctaP = leadingBlindProgress(blindProgress, 0, LEADING_SLATS, count)
+  const ctaStyle =
+    blindProgress > 0 ? faceStyleFromRowProgress(ctaP) : undefined
   const headingStyle =
     blindProgress > 0
       ? faceStyleFromRowProgress(headingP)
@@ -310,6 +317,7 @@ export default function WorkRows({ categories = homeWorkCategories }) {
           previewRowIndex,
           selectedCategoryId === current.id,
           count,
+          LEADING_SLATS,
         )
       : 0
   const shellOpacity =
@@ -321,7 +329,7 @@ export default function WorkRows({ categories = homeWorkCategories }) {
 
   return (
     <section
-      className="relative text-ink section-pad bg-canvas pt-32 md:pt-40 pb-10 md:pb-14"
+      className="work-index-page relative text-ink section-pad bg-canvas dark:bg-transparent pt-32 md:pt-40 pb-0"
       onMouseLeave={hidePreview}
       aria-labelledby="all-work-heading"
     >
@@ -345,6 +353,7 @@ export default function WorkRows({ categories = homeWorkCategories }) {
             index,
             isSelected,
             count,
+            LEADING_SLATS,
           )
           const rowFaceStyle =
             blindProgress > 0
@@ -432,6 +441,21 @@ export default function WorkRows({ categories = homeWorkCategories }) {
           )
         })}
       </ul>
+
+      <div className="mt-[76px] md:mt-[110px] mb-[56px] md:mb-[72px] flex justify-center">
+        <div className="origin-top will-change-transform" style={ctaStyle}>
+          <BlindExitLink
+            to="/about"
+            aria-label="Behind the work"
+            aria-disabled={clickDriving ? true : undefined}
+            tabIndex={clickDriving ? -1 : undefined}
+            className="featured-cta-link font-mono font-light text-[13px] md:text-[14px] tracking-[0.08em] uppercase whitespace-nowrap"
+          >
+            <BarrelRollLabel text="Behind the work" />{' '}
+            <span className="featured-cta-arrow">→</span>
+          </BlindExitLink>
+        </div>
+      </div>
 
       {hoverCapable && (
         <div

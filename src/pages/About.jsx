@@ -44,8 +44,6 @@ function AboutReveal({ children, className = '', delay = 0, lift = false }) {
 
 function AboutPortrait({ blindStyle }) {
   const [index, setIndex] = useState(0)
-  const [hovering, setHovering] = useState(false)
-  const [hoverLocked, setHoverLocked] = useState(false)
   const [fineHover, setFineHover] = useState(false)
 
   useEffect(() => {
@@ -56,23 +54,18 @@ function AboutPortrait({ blindStyle }) {
     return () => mq.removeEventListener('change', sync)
   }, [])
 
-  const previewing = fineHover && hovering && !hoverLocked
-  const shown = previewing ? 1 - index : index
+  const toggle = () => setIndex((current) => 1 - current)
 
   return (
     <div className="origin-top will-change-transform" style={blindStyle}>
       <button
         type="button"
         aria-label="Show other portrait"
-        onMouseEnter={() => { if (fineHover) setHovering(true) }}
-        onMouseLeave={() => { setHovering(false); setHoverLocked(false) }}
-        onClick={() => {
-          if (fineHover && hovering && !hoverLocked) {
-            setIndex(shown)
-            setHoverLocked(true)
-          } else {
-            setIndex((current) => 1 - current)
-          }
+        onMouseEnter={() => {
+          if (fineHover) toggle()
+        }}
+        onClick={(e) => {
+          if (!fineHover || e.detail === 0) toggle()
         }}
         className="relative mx-auto block aspect-square w-[74vw] max-w-[320px] cursor-pointer overflow-hidden border-0 bg-transparent p-0 gallery-protected focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-ink/40"
         {...protectedGalleryHandlers}
@@ -81,12 +74,12 @@ function AboutPortrait({ blindStyle }) {
           <ProtectedImage
             key={photo.src}
             src={photo.src}
-            alt={i === shown ? photo.alt : ''}
-            aria-hidden={i === shown ? undefined : true}
+            alt={i === index ? photo.alt : ''}
+            aria-hidden={i === index ? undefined : true}
             loading={i === 0 ? 'eager' : 'lazy'}
             decoding="async"
             className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-500 ease-elegant ${
-              i === shown ? 'opacity-100' : 'opacity-0'
+              i === index ? 'opacity-100' : 'opacity-0'
             }`}
           />
         ))}
@@ -173,7 +166,7 @@ export default function About() {
                 <p>
                   We remember moments before we understand their{' '}
                   <span className="text-salience-warm">semantics</span>. In a world where life
-                  continues regardless of your existence, I've come to derive meaning from moments
+                  continues with or without you, I've come to derive meaning from moments
                   that would otherwise dissipate within seconds.
                 </p>
               </div>

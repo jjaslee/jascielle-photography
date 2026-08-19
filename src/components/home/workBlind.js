@@ -7,8 +7,8 @@ export const BLIND_SELECTED_EXTRA_MS = 100
 export const BLIND_DURATION_MS = 480
 
 /** Total ms for a full close, including the stagger tail. */
-export function blindCloseTotalMs(categoryCount) {
-  const lastIndex = Math.max(categoryCount - 1, 0)
+export function blindCloseTotalMs(categoryCount, leadingSlats = 0) {
+  const lastIndex = Math.max(categoryCount - 1, 0) + leadingSlats
   return (
     lastIndex * BLIND_STAGGER_MS +
     BLIND_SELECTED_EXTRA_MS +
@@ -30,11 +30,38 @@ function easeBlind(t) {
  * Map global blindProgress (0..1) to per-row progress with bottom-up stagger.
  * The selected row lags slightly so the clicked choice stays legible longer.
  */
-export function rowBlindProgress(globalP, index, isSelected, categoryCount) {
-  const total = blindCloseTotalMs(categoryCount)
+export function rowBlindProgress(
+  globalP,
+  index,
+  isSelected,
+  categoryCount,
+  leadingSlats = 0,
+) {
+  const total = blindCloseTotalMs(categoryCount, leadingSlats)
   const fromBottom = Math.max(categoryCount - 1, 0) - index
   const delay =
-    fromBottom * BLIND_STAGGER_MS + (isSelected ? BLIND_SELECTED_EXTRA_MS : 0)
+    leadingSlats * BLIND_STAGGER_MS +
+    fromBottom * BLIND_STAGGER_MS +
+    (isSelected ? BLIND_SELECTED_EXTRA_MS : 0)
+  const start = delay / total
+  const end = (delay + BLIND_DURATION_MS) / total
+  if (globalP <= start) return 0
+  if (globalP >= end) return 1
+  return (globalP - start) / (end - start)
+}
+
+/**
+ * Leading slats before the row list (e.g. Work page CTA) — first index closes first.
+ */
+export function leadingBlindProgress(
+  globalP,
+  leadingIndex,
+  leadingCount,
+  categoryCount,
+) {
+  const total = blindCloseTotalMs(categoryCount, leadingCount)
+  const fromFirst = Math.max(leadingCount - 1, 0) - leadingIndex
+  const delay = fromFirst * BLIND_STAGGER_MS
   const start = delay / total
   const end = (delay + BLIND_DURATION_MS) / total
   if (globalP <= start) return 0

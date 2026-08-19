@@ -9,12 +9,17 @@ export default function Layout() {
   const { pathname } = useLocation()
   // Home concludes inside Featured (hover label + quiet meta). Avoid a second footer.
   const showFooter = pathname !== '/'
+  const isWorkCategory = pathname.startsWith('/work/')
 
   return (
     <>
-      <CursorSpotlight />
-      <div className="relative z-30 min-h-screen flex flex-col">
-        <Nav />
+      {!isWorkCategory ? <CursorSpotlight /> : null}
+      <Nav />
+      <div
+        className={`relative z-30 min-h-screen flex flex-col${
+          isWorkCategory ? ' work-category-layout' : ''
+        }`}
+      >
         <main className="flex-1">
           <Outlet />
         </main>

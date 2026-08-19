@@ -9,6 +9,7 @@ import Events from './pages/Events'
 import Places from './pages/Places'
 import About from './pages/About'
 import Book from './pages/Book'
+import Privacy from './pages/Privacy'
 import Work from './pages/Work'
 import WorkCategory from './pages/WorkCategory'
 
@@ -24,6 +25,7 @@ function AppRoutes() {
         <Route path="places" element={<Places />} />
         <Route path="about" element={<About />} />
         <Route path="book" element={<Book />} />
+        <Route path="privacy" element={<Privacy />} />
       </Route>
     </Routes>
   )

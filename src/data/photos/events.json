@@ -1,0 +1,37 @@
+[
+  {
+    "src": "/images/events/IMG_3707.jpg",
+    "alt": "Archer with recurve bow at full draw",
+    "category": "sports",
+    "width": 1065,
+    "height": 1600
+  },
+  {
+    "src": "/images/events/IMG_3619.jpg",
+    "alt": "Archers aiming compound bows at competition",
+    "category": "sports",
+    "width": 1600,
+    "height": 1065
+  },
+  {
+    "src": "/images/events/IMG_3556.jpg",
+    "alt": "Archer with compound bow at full draw",
+    "category": "sports",
+    "width": 1600,
+    "height": 1065
+  },
+  {
+    "src": "/images/events/IMG_3560.jpg",
+    "alt": "Row of archery targets on an outdoor range",
+    "category": "sports",
+    "width": 1600,
+    "height": 1065
+  },
+  {
+    "src": "/images/events/IMG_3696.jpg",
+    "alt": "Archer drawing a recurve bow on the field",
+    "category": "sports",
+    "width": 1065,
+    "height": 1600
+  }
+]

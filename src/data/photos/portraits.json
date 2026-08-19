@@ -1,0 +1,90 @@
+[
+  {
+    "src": "/images/portraits/IMG_4262.jpg",
+    "alt": "Grad portrait on campus seal",
+    "session": "grad",
+    "theme": "moody",
+    "width": 1066,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_3998.jpg",
+    "alt": "Grad portrait on campus plaza",
+    "session": "grad",
+    "theme": "moody",
+    "width": 1028,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_4069.jpg",
+    "alt": "Golden hour grad portrait",
+    "session": "grad",
+    "theme": "moody",
+    "width": 1066,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_4161.jpg",
+    "alt": "Grad portrait with Campanile, UC Berkeley",
+    "session": "grad",
+    "theme": "moody",
+    "width": 1066,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_2336.jpg",
+    "alt": "Grad portrait among roses",
+    "session": "grad",
+    "theme": "bright",
+    "width": 1065,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_2307.jpg",
+    "alt": "Grad portrait with book in rose garden",
+    "session": "grad",
+    "theme": "bright",
+    "width": 1065,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_2095.jpg",
+    "alt": "Grad portrait in rose garden path",
+    "session": "grad",
+    "theme": "bright",
+    "width": 1065,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_1995.jpg",
+    "alt": "Grad portrait on rose garden stone path",
+    "session": "grad",
+    "theme": "bright",
+    "width": 1065,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_2827.jpg",
+    "alt": "Grad portrait seated on a sunlit lawn",
+    "session": "grad",
+    "theme": "bright",
+    "width": 1131,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_4038.jpg",
+    "alt": "Grad portrait at Wheeler Hall with raised stole",
+    "session": "grad",
+    "theme": "bright",
+    "width": 1065,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_3853.jpg",
+    "alt": "Graduate in cap and gown on campus",
+    "session": "grad",
+    "theme": "bright",
+    "width": 1065,
+    "height": 1600
+  }
+]

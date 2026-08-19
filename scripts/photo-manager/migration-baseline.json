@@ -1,0 +1,22 @@
+{
+  "portraits": {
+    "count": 11,
+    "orderedSrcSha256": "bc27dc7ba54c0d8a31916c66f58fe00f8f5e92caee1507f2510433a65b1f1556"
+  },
+  "events": {
+    "count": 5,
+    "orderedSrcSha256": "058e65168ca7c8d49ef39f696ea881d91b1585b9fc52770bd2cd5ccb2d3c1e44"
+  },
+  "places": {
+    "count": 54,
+    "orderedSrcSha256": "3771a37484a7d0d9c242aab6489099a70992886ec2abff705b992d7e7549e3be"
+  },
+  "objects": {
+    "count": 0,
+    "orderedSrcSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "spaces": {
+    "count": 1,
+    "orderedSrcSha256": "275f762a96eed7c9a6494d97ec4d8e19f146167cabbfda730969a0385c1dedd7"
+  }
+}

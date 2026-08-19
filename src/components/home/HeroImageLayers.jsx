@@ -15,6 +15,14 @@ const LAYER_RANGES = {
   reflection: 5,
 }
 
+const TOUCH_LAYER_RANGES = {
+  background: 2,
+  midground: 3.5,
+  foreground: 5.5,
+  canopy: 5,
+  reflection: 4,
+}
+
 const LAYER_KEYS = ['background', 'midground', 'foreground', 'canopy', 'reflection']
 
 function getLayerOrder(layers) {
@@ -36,38 +44,76 @@ function canOrientationParallax() {
   )
 }
 
+function canTouchParallax() {
+  return (
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
+    window.matchMedia('(pointer: coarse)').matches
+  )
+}
+
 export default function HeroImageLayers({
   layers,
   alt,
   stageRef,
   orientationRef,
   motionKicksRef,
+  interactionEnabledRef,
+  heroPointerRef,
 }) {
+  const interactionRef = interactionEnabledRef ?? { current: true }
   const layerRefs = useRef([])
   const layerOrder = useMemo(() => getLayerOrder(layers), [layers])
 
   useEffect(() => {
     const stage = stageRef?.current
     const pointerParallax = canParallax()
+    const touchParallax = !pointerParallax && canTouchParallax()
     const orientationParallax = !pointerParallax && canOrientationParallax()
-    if (!stage || (!pointerParallax && !orientationParallax)) return
+    if (!stage || (!pointerParallax && !touchParallax && !orientationParallax)) return
 
-    const pointerTarget = { x: 0, y: 0 }
     const current = { x: 0, y: 0 }
     let raf = 0
     let running = true
 
     const apply = () => {
+      if (!interactionRef.current) {
+        current.x = 0
+        current.y = 0
+        layerOrder.forEach((key, i) => {
+          const el = layerRefs.current[i]
+          if (!el) return
+          el.style.transform = `translate3d(0px, 0px, 0) scale(${EDGE_CROP_SCALE})`
+        })
+        raf = 0
+        return
+      }
       const orientation = orientationRef?.current
-      const targetX = pointerParallax ? pointerTarget.x : orientation?.x ?? 0
-      const targetY = pointerParallax ? pointerTarget.y : orientation?.y ?? 0
+      const ptr = heroPointerRef?.current ?? {
+        nx: 0,
+        ny: 0,
+        influence: 0,
+        touching: false,
+      }
+      const touching = touchParallax && ptr.touching
+      let targetX = 0
+      let targetY = 0
+      if (touching) {
+        targetX = ptr.nx
+        targetY = ptr.ny
+      } else if (pointerParallax) {
+        targetX = ptr.nx * ptr.influence
+        targetY = ptr.ny * ptr.influence
+      } else {
+        targetX = orientation?.x ?? 0
+        targetY = orientation?.y ?? 0
+      }
       current.x += (targetX - current.x) * LERP
       current.y += (targetY - current.y) * LERP
 
       layerOrder.forEach((key, i) => {
         const el = layerRefs.current[i]
         if (!el) return
-        const range = LAYER_RANGES[key]
+        const range = touching ? TOUCH_LAYER_RANGES[key] : LAYER_RANGES[key]
         const x = current.x * range
         const y = current.y * range
         el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${EDGE_CROP_SCALE})`
@@ -81,43 +127,20 @@ export default function HeroImageLayers({
     }
 
     const kick = () => {
-      if (!running || raf) return
+      if (!interactionRef.current || !running || raf) return
       raf = requestAnimationFrame(apply)
     }
 
-    const onMove = (e) => {
-      const rect = stage.getBoundingClientRect()
-      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1
-      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1
-      pointerTarget.x = Math.max(-1, Math.min(1, nx))
-      pointerTarget.y = Math.max(-1, Math.min(1, ny))
-      kick()
-    }
-
-    const onLeave = () => {
-      pointerTarget.x = 0
-      pointerTarget.y = 0
-      kick()
-    }
-
-    if (pointerParallax) {
-      stage.addEventListener('mousemove', onMove)
-      stage.addEventListener('mouseleave', onLeave)
-    }
-    if (orientationParallax && motionKicksRef?.current) {
-      motionKicksRef.current.add(kick)
+    if (pointerParallax || touchParallax || orientationParallax) {
+      motionKicksRef?.current?.add(kick)
     }
 
     return () => {
       running = false
       cancelAnimationFrame(raf)
-      if (pointerParallax) {
-        stage.removeEventListener('mousemove', onMove)
-        stage.removeEventListener('mouseleave', onLeave)
-      }
-      if (orientationParallax) motionKicksRef?.current?.delete(kick)
+      motionKicksRef?.current?.delete(kick)
     }
-  }, [stageRef, layerOrder, orientationRef, motionKicksRef])
+  }, [stageRef, layerOrder, orientationRef, motionKicksRef, heroPointerRef])
 
   return (
     <>
