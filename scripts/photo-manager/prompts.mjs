@@ -6,6 +6,30 @@ import { heading, valueLabel } from './format.mjs'
 
 export const BACK = '__back__'
 export const CANCEL = '__cancel__'
+export const NO_SECONDARY_PLACEMENT = '__no_secondary_placement__'
+
+function selectionValues(selections) {
+  return selections.map((selection) =>
+    typeof selection === 'string' ? selection : selection.value,
+  )
+}
+
+export function validateOptionalPlacementSelection(selections) {
+  const values = selectionValues(selections)
+  const hasNoSecondary = values.includes(NO_SECONDARY_PLACEMENT)
+  const hasRealPlacement = values.some((value) =>
+    ['preview', 'featured', 'cover'].includes(value),
+  )
+  return hasNoSecondary && hasRealPlacement
+    ? 'Choose either "No secondary placement" or one or more placements.'
+    : true
+}
+
+export function resolveOptionalPlacementSelection(selections) {
+  const values = selectionValues(selections)
+  if (values.includes(BACK)) return BACK
+  return values.filter((value) => value !== NO_SECONDARY_PLACEMENT)
+}
 
 export async function promptAlt(current = '') {
   heading(`ACCESSIBILITY DESCRIPTION
@@ -154,14 +178,18 @@ All choices default to off.`)
   const selections = await checkbox({
     message: 'Also use this photograph elsewhere?',
     choices: [
+      ...(options.includeNoSecondary
+        ? [{ name: 'No secondary placement', value: NO_SECONDARY_PLACEMENT }]
+        : []),
       ...choices.map((choice) => ({
         ...choice,
         checked: options.checked?.includes(choice.value) ?? false,
       })),
       { name: '← Back', value: BACK },
     ],
+    validate: validateOptionalPlacementSelection,
   })
-  return selections.includes(BACK) ? BACK : selections
+  return resolveOptionalPlacementSelection(selections)
 }
 
 export async function promptPhotoSearch(state, initialQuery = '') {

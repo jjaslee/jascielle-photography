@@ -8,6 +8,11 @@ The Photo Catalog Manager is a local developer CLI for the Work portfolio. It re
 npm run photo:manage
 npm run photo:add -- ~/Desktop/photo.jpg
 npm run photo:add -- ~/Desktop/photo.jpg --dry-run
+npm run photo:add-batch -- ~/Desktop/point-reyes.zip
+npm run photo:add-batch -- ~/Desktop/point-reyes/
+npm run photo:add-batch -- ~/Desktop/point-reyes.zip --dry-run
+npm run photo:add-batch -- ~/Desktop/point-reyes/ --model gpt-5.6-sol
+npm run photo:add-batch -- --apply-proposal <proposal-id-or-path>
 npm run photo:edit -- IMG_1234
 npm run photo:edit -- IMG_1234 --dry-run
 npm run photo:audit
@@ -25,6 +30,20 @@ Add inspects the source before asking curatorial questions. The questionnaire ex
 The source file is read-only: it is never modified, moved, or deleted. The output is a new JPEG in the canonical category folder. Filename collisions and duplicate `src` values are rejected rather than overwritten.
 
 Use `--dry-run` to complete inspection, classification, processing in memory, review, and validation without writing any file.
+
+## Batch Add
+
+Batch Add accepts a folder or ZIP archive and is intended for roughly 10–50 photographs. It supports the same JPEG, PNG, and WebP inputs as single-photo Add. Leading `~`, absolute paths, and relative paths use the same resolver as single-photo Add. Folder discovery is recursive. ZIP extraction uses isolated temporary staging, rejects unsafe paths, and ignores macOS metadata such as `__MACOSX`, `.DS_Store`, and `._*` files. Temporary files are removed after success, cancellation, or failure.
+
+The workflow optimizes incoming photographs in memory, checks exact content and generated-output hashes against the managed portfolio, and creates small temporary previews. Existing photographs are supplied to the visual analyzer as ordered contact sheets rather than full-resolution files. A single grouped analysis considers the incoming set and existing sequence together, then recommends the existing taxonomy classification, internal batch order, and a before/after/beginning/end placement. The prompt considers subject, palette, light, exposure, composition, orientation, focal distance, mood, negative space, visual weight, texture, geometry, transitions, and gallery rhythm.
+
+Visual analysis runs through the locally installed Codex CLI in ephemeral, read-only mode. It explicitly uses `gpt-5.6-terra` by default; `--model <model-id>` overrides that model for a new batch analysis only. It reuses the authentication shown by `codex login status`; no separate OpenAI API key is required. Run `codex login` first if the CLI is not authenticated. The integration uses image inputs and a JSON output schema documented in the [official Codex command reference](https://learn.chatgpt.com/docs/developer-commands?surface=cli).
+
+Codex only produces recommendations. The photo manager validates every returned source token, category, subcategory, taxonomy-specific field, placement target, confidence value, and batch order against the repository before it can build a proposal. Invalid output stops without changes. Low-confidence or unresolved photographs must be manually reviewed. The review menu can replace an individual classification and/or placement using the existing guided prompts.
+
+The complete proposal is shown before approval. Choosing Cancel writes nothing. `--dry-run` performs discovery, analysis, duplicate detection, proposal construction, image optimization, and full catalog validation, then saves the final reviewed proposal under the git-ignored `.photo-manager/proposals/` directory without changing portfolio files. Apply it later with `--apply-proposal <proposal-id-or-path>` to reuse the saved recommendations with zero Codex calls. Before applying, the manager rechecks source hashes, duplicate content, placement targets, optimization settings, and the catalog fingerprint/order. Successful application marks the proposal as applied in the same atomic transaction as the new JPEGs and manifests, preventing reuse; a partial failure restores prior manifests and removes any already-committed batch images.
+
+Batch Add does not ask for `location` or `year`. Those properties are omitted—not set to `null`—so the existing audit/backfill semantics continue to treat them as unreviewed. Batch Add changes only primary gallery placement and leaves Featured, hover-preview, and legacy-cover assignments unchanged.
 
 ## Image defaults
 

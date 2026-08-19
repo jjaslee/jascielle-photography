@@ -1,22 +1,102 @@
 {
   "portraits": {
     "count": 11,
-    "orderedSrcSha256": "bc27dc7ba54c0d8a31916c66f58fe00f8f5e92caee1507f2510433a65b1f1556"
+    "orderedSrcSha256": "bc27dc7ba54c0d8a31916c66f58fe00f8f5e92caee1507f2510433a65b1f1556",
+    "orderedSrcs": [
+      "/images/portraits/IMG_4262.jpg",
+      "/images/portraits/IMG_3998.jpg",
+      "/images/portraits/IMG_4069.jpg",
+      "/images/portraits/IMG_4161.jpg",
+      "/images/portraits/IMG_2336.jpg",
+      "/images/portraits/IMG_2307.jpg",
+      "/images/portraits/IMG_2095.jpg",
+      "/images/portraits/IMG_1995.jpg",
+      "/images/portraits/IMG_2827.jpg",
+      "/images/portraits/IMG_4038.jpg",
+      "/images/portraits/IMG_3853.jpg"
+    ]
   },
   "events": {
     "count": 5,
-    "orderedSrcSha256": "058e65168ca7c8d49ef39f696ea881d91b1585b9fc52770bd2cd5ccb2d3c1e44"
+    "orderedSrcSha256": "058e65168ca7c8d49ef39f696ea881d91b1585b9fc52770bd2cd5ccb2d3c1e44",
+    "orderedSrcs": [
+      "/images/events/IMG_3707.jpg",
+      "/images/events/IMG_3619.jpg",
+      "/images/events/IMG_3556.jpg",
+      "/images/events/IMG_3560.jpg",
+      "/images/events/IMG_3696.jpg"
+    ]
   },
   "places": {
     "count": 54,
-    "orderedSrcSha256": "3771a37484a7d0d9c242aab6489099a70992886ec2abff705b992d7e7549e3be"
+    "orderedSrcSha256": "3771a37484a7d0d9c242aab6489099a70992886ec2abff705b992d7e7549e3be",
+    "orderedSrcs": [
+      "/images/places/IMG_3251.jpg",
+      "/images/places/4S7A2211.jpg",
+      "/images/places/IMG_0935.jpg",
+      "/images/places/IMG_9363.jpg",
+      "/images/places/IMG_9388.jpg",
+      "/images/places/IMG_1782.jpg",
+      "/images/places/IMG_3134.jpg",
+      "/images/places/IMG_3535.jpg",
+      "/images/places/IMG_0435.jpg",
+      "/images/places/IMG_0431.jpg",
+      "/images/places/IMG_0401.jpg",
+      "/images/places/IMG_0408.jpg",
+      "/images/places/IMG_4171.jpg",
+      "/images/places/IMG_4164.jpg",
+      "/images/places/IMG_4013.jpg",
+      "/images/places/IMG_0346.jpg",
+      "/images/places/IMG_0857.jpg",
+      "/images/places/IMG_9446.jpg",
+      "/images/places/IMG_9083.jpg",
+      "/images/places/IMG_9443.jpg",
+      "/images/places/IMG_9338.jpg",
+      "/images/places/IMG_9000.jpg",
+      "/images/places/IMG_9347.jpg",
+      "/images/places/IMG_8930.jpg",
+      "/images/places/IMG_8949.jpg",
+      "/images/places/IMG_9244.jpg",
+      "/images/places/IMG_9288.jpg",
+      "/images/places/IMG_3812.jpg",
+      "/images/places/IMG_3827.jpg",
+      "/images/places/IMG_1072.jpg",
+      "/images/places/IMG_1513.jpg",
+      "/images/places/IMG_1423.jpg",
+      "/images/places/IMG_1156.jpg",
+      "/images/places/IMG_1308.jpg",
+      "/images/places/IMG_8908.jpg",
+      "/images/places/IMG_8912.jpg",
+      "/images/places/IMG_4493.jpg",
+      "/images/places/IMG_9437.jpg",
+      "/images/places/IMG_3916.jpg",
+      "/images/places/IMG_1925.jpg",
+      "/images/places/IMG_1923.jpg",
+      "/images/places/IMG_3917.jpg",
+      "/images/places/IMG_3908.jpg",
+      "/images/places/IMG_9424.jpg",
+      "/images/places/IMG_2396.jpg",
+      "/images/places/IMG_9297.jpg",
+      "/images/places/IMG_9095.jpg",
+      "/images/places/IMG_9439.jpg",
+      "/images/places/IMG_4021.jpg",
+      "/images/places/IMG_4139.jpg",
+      "/images/places/IMG_4109.jpg",
+      "/images/places/IMG_8861.jpg",
+      "/images/places/IMG_4020.jpg",
+      "/images/places/IMG_4086.jpg"
+    ]
   },
   "objects": {
     "count": 0,
-    "orderedSrcSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "orderedSrcSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "orderedSrcs": []
   },
   "spaces": {
     "count": 1,
-    "orderedSrcSha256": "275f762a96eed7c9a6494d97ec4d8e19f146167cabbfda730969a0385c1dedd7"
+    "orderedSrcSha256": "275f762a96eed7c9a6494d97ec4d8e19f146167cabbfda730969a0385c1dedd7",
+    "orderedSrcs": [
+      "/images/places/IMG_9197.jpg"
+    ]
   }
 }

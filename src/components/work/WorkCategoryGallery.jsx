@@ -29,8 +29,11 @@ const ACTIVATION_RATIO = 0.5
 const UNDERLINE_MS = 380
 const BOUNDARY_START = 0.06
 const BOUNDARY_END = 0.94
-const WHEEL_GAIN = 0.85
-const SCROLL_LERP = 0.14
+const WHEEL_GAIN = 0.62
+const SCROLL_LERP = 0.09
+const MOBILE_WHEEL_GAIN = 0.58
+const MOBILE_TOUCH_GAIN = 0.58
+const MOBILE_SCROLL_LERP = 0.12
 const INITIAL_EDGE_COUNT = 12
 const SECTION_GAP = GAP
 const decodedSources = new Set()
@@ -385,8 +388,8 @@ function SubcategoryNav({ sections, activeId, onSelect, flow = false }) {
             onClick={() => onSelect(section.id)}
             className={`font-mono font-light text-[11px] md:text-xs tracking-[0.14em] uppercase transition-colors duration-300 ${
               activeId === section.id
-                ? 'text-white/95'
-                : 'text-white/45 hover:text-white/70'
+                ? 'text-ink/95'
+                : 'text-ink/45 hover:text-ink/70'
             }`}
           >
             {section.label}
@@ -684,13 +687,13 @@ function WorkCategoryGalleryScroll({ category, reduced = false, onInspect }) {
 
   return (
     <section
-      className={`work-gallery-chapter bg-black text-white flex flex-col overflow-visible pt-14 md:pt-16${
+      className={`work-gallery-chapter bg-canvas text-ink flex flex-col overflow-visible pt-14 md:pt-16${
         location.state?.categoryTransition ? ' is-category-arrival' : ''
       }`}
       style={{ height: `calc(100svh - ${footerH}px)` }}
       aria-label={`${category.title} gallery`}
     >
-      <h1 className="work-gallery-title font-display text-center text-white shrink-0 pt-4 md:pt-6 pb-4 md:pb-6">
+      <h1 className="work-gallery-title font-display text-center text-ink shrink-0 pt-4 md:pt-6 pb-4 md:pb-6">
         {category.title}
       </h1>
 
@@ -808,6 +811,10 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
   const scrollerRef = useRef(null)
   const sectionRefs = useRef({})
   const categoryTransitionRef = useRef(false)
+  const scrollTargetRef = useRef(0)
+  const scrollCurrentRef = useRef(0)
+  const scrollRafRef = useRef(0)
+  const touchLastYRef = useRef(null)
   const startsAtEnd = location.state?.initialGalleryPosition === 'end'
   const firstSectionId = category.sections[0]?.id ?? null
   const lastSectionId = category.sections.at(-1)?.id ?? null
@@ -836,6 +843,8 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
       scroller.scrollTop = startsAtEnd
         ? Math.max(0, scroller.scrollHeight - scroller.clientHeight)
         : 0
+      scrollCurrentRef.current = scroller.scrollTop
+      scrollTargetRef.current = scroller.scrollTop
     }
     reset()
     const frame = requestAnimationFrame(reset)
@@ -853,6 +862,90 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
       document.body.style.overflow = previousBodyOverflow
     }
   }, [])
+
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+
+    const clamp = (value) => {
+      const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight)
+      return Math.min(Math.max(value, 0), maxScroll)
+    }
+
+    const tick = () => {
+      const cur = scrollCurrentRef.current
+      const tgt = scrollTargetRef.current
+      const next = cur + (tgt - cur) * MOBILE_SCROLL_LERP
+      if (Math.abs(tgt - cur) > 0.05) {
+        scrollCurrentRef.current = next
+        scroller.scrollTop = next
+        scrollRafRef.current = requestAnimationFrame(tick)
+      } else {
+        scrollCurrentRef.current = tgt
+        scroller.scrollTop = tgt
+        scrollRafRef.current = 0
+      }
+    }
+
+    const kick = () => {
+      if (!scrollRafRef.current) scrollRafRef.current = requestAnimationFrame(tick)
+    }
+
+    const onWheel = (event) => {
+      event.preventDefault()
+      const delta =
+        Math.abs(event.deltaY) >= Math.abs(event.deltaX)
+          ? event.deltaY
+          : event.deltaX
+      scrollTargetRef.current = clamp(
+        scrollTargetRef.current + delta * MOBILE_WHEEL_GAIN,
+      )
+      kick()
+    }
+
+    const onTouchStart = (event) => {
+      touchLastYRef.current = event.touches[0]?.clientY ?? null
+    }
+
+    const onTouchMove = (event) => {
+      const y = event.touches[0]?.clientY
+      if (typeof y !== 'number' || touchLastYRef.current == null) return
+      event.preventDefault()
+      const delta = (touchLastYRef.current - y) * MOBILE_TOUCH_GAIN
+      touchLastYRef.current = y
+      scrollTargetRef.current = clamp(scrollTargetRef.current + delta)
+      kick()
+    }
+
+    const onTouchEnd = () => {
+      touchLastYRef.current = null
+    }
+
+    const onNativeScroll = () => {
+      if (scrollRafRef.current) return
+      scrollCurrentRef.current = scroller.scrollTop
+      scrollTargetRef.current = scroller.scrollTop
+    }
+
+    scroller.addEventListener('wheel', onWheel, { passive: false })
+    scroller.addEventListener('touchstart', onTouchStart, { passive: true })
+    scroller.addEventListener('touchmove', onTouchMove, { passive: false })
+    scroller.addEventListener('touchend', onTouchEnd, { passive: true })
+    scroller.addEventListener('touchcancel', onTouchEnd, { passive: true })
+    scroller.addEventListener('scroll', onNativeScroll, { passive: true })
+
+    return () => {
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current)
+      scrollRafRef.current = 0
+      touchLastYRef.current = null
+      scroller.removeEventListener('wheel', onWheel)
+      scroller.removeEventListener('touchstart', onTouchStart)
+      scroller.removeEventListener('touchmove', onTouchMove)
+      scroller.removeEventListener('touchend', onTouchEnd)
+      scroller.removeEventListener('touchcancel', onTouchEnd)
+      scroller.removeEventListener('scroll', onNativeScroll)
+    }
+  }, [category.id])
 
   const syncActiveSection = useCallback(() => {
     const scroller = scrollerRef.current
@@ -962,13 +1055,13 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
 
   return (
     <section
-      className={`work-gallery-static work-gallery-mobile flex h-full min-h-0 flex-col overflow-hidden bg-black pt-[4.5rem] text-white md:pt-20${
+      className={`work-gallery-static work-gallery-mobile flex h-full min-h-0 flex-col overflow-hidden bg-canvas pt-[4.5rem] text-ink md:pt-20${
         location.state?.categoryTransition ? ' is-category-arrival' : ''
       }`}
       style={{ paddingInline: 'clamp(16px, 4vw, 28px)' }}
       aria-label={`${category.title} gallery`}
     >
-      <h1 className="work-gallery-title shrink-0 pb-2 font-display text-center text-white">
+      <h1 className="work-gallery-title shrink-0 pb-2 font-display text-center text-ink">
         {category.title}
       </h1>
 
@@ -1063,7 +1156,7 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
                 ))}
               </div>
             ) : (
-              <p className="text-center font-mono text-sm font-light text-white/30">
+              <p className="text-center font-mono text-sm font-light text-ink/30">
                 Coming soon
               </p>
             )}
@@ -1097,18 +1190,18 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
 
 function WorkCategoryGalleryStatic({ category, onInspect }) {
   return (
-    <section className="work-gallery-static bg-black text-white min-h-screen section-pad pt-24 md:pt-28 pb-16">
-      <h1 className="work-gallery-title font-display text-center text-white mb-10 md:mb-14">
+    <section className="work-gallery-static bg-canvas text-ink min-h-screen section-pad pt-24 md:pt-28 pb-16">
+      <h1 className="work-gallery-title font-display text-center text-ink mb-10 md:mb-14">
         {category.title}
       </h1>
 
       {category.sections.map((section) => (
         <div key={section.id} className="mb-12 md:mb-16 last:mb-0">
-          <p className="font-mono font-light text-[11px] tracking-[0.14em] uppercase text-white/50 mb-6 text-center">
+          <p className="font-mono font-light text-[11px] tracking-[0.14em] uppercase text-ink/50 mb-6 text-center">
             {section.label}
           </p>
           {section.images.length === 0 ? (
-            <p className="text-center text-white/30 text-sm font-mono font-light">
+            <p className="text-center text-ink/30 text-sm font-mono font-light">
               Coming soon
             </p>
           ) : (

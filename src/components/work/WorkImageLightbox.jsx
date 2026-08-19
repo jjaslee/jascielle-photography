@@ -91,7 +91,7 @@ export default function WorkImageLightbox({
     }
   }, [image.src])
 
-  const caption = [image.location, image.year].filter(Boolean).join(' · ')
+  const hasCaption = Boolean(image.location || image.year)
 
   return createPortal(
     <div
@@ -116,43 +116,52 @@ export default function WorkImageLightbox({
       <div className="work-image-lightbox__backdrop" aria-hidden="true" />
 
       <div className="work-image-lightbox__stage">
-        <div
-          className="work-image-lightbox__frame"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <button
-            ref={closeButtonRef}
-            type="button"
-            className="work-image-lightbox__close"
-            aria-label="Close photograph inspection"
-            onClick={requestClose}
+        <div className="work-image-lightbox__figure">
+          <div
+            className="work-image-lightbox__frame"
+            onClick={(event) => event.stopPropagation()}
           >
-            <span className="work-image-lightbox__close-icon" aria-hidden="true" />
-          </button>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              className="work-image-lightbox__close"
+              aria-label="Close photograph inspection"
+              onClick={requestClose}
+            >
+              <span className="work-image-lightbox__close-icon" aria-hidden="true" />
+            </button>
 
-          <ProtectedImage
-            src={image.src}
-            alt={image.alt}
-            width={image.width}
-            height={image.height}
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-            draggable={false}
-            className="work-image-lightbox__image"
-            onLoad={() => setImageReady(true)}
-          />
+            <ProtectedImage
+              src={image.src}
+              alt={image.alt}
+              width={image.width}
+              height={image.height}
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              draggable={false}
+              className="work-image-lightbox__image"
+              onLoad={() => setImageReady(true)}
+            />
+          </div>
+
+          {hasCaption && (
+            <p
+              className="work-image-lightbox__caption"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {image.location && (
+                <span className="work-image-lightbox__caption-location">
+                  {image.location}
+                </span>
+              )}
+              {image.year && (
+                <span className="work-image-lightbox__caption-year">{image.year}</span>
+              )}
+            </p>
+          )}
         </div>
       </div>
-
-      {caption && (
-        <p
-          className="work-image-lightbox__caption"
-          onClick={(event) => event.stopPropagation()}
-        >
-          {caption}
-        </p>
-      )}
     </div>,
     document.body,
   )

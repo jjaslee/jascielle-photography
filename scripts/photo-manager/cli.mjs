@@ -2,6 +2,7 @@
 import { input, select } from '@inquirer/prompts'
 import { spawnSync } from 'node:child_process'
 import { runAddWorkflow } from './add.mjs'
+import { runApplyProposalWorkflow, runBatchWorkflow } from './add-batch.mjs'
 import { runAuditWorkflow } from './audit.mjs'
 import { runEditWorkflow } from './edit.mjs'
 import { photoManagerConfig } from './config.mjs'
@@ -15,6 +16,28 @@ function parseArguments(argv) {
   return { dryRun, positional }
 }
 
+function parseBatchArguments(argv) {
+  const options = { dryRun: false, model: undefined, applyProposal: undefined }
+  const positional = []
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index]
+    if (argument === '--dry-run') {
+      options.dryRun = true
+      continue
+    }
+    if (argument === '--model' || argument === '--apply-proposal') {
+      const value = argv[index + 1]
+      if (!value || value.startsWith('--')) throw new Error(`${argument} requires a value.`)
+      if (argument === '--model') options.model = value
+      else options.applyProposal = value
+      index += 1
+      continue
+    }
+    positional.push(argument)
+  }
+  return { ...options, positional }
+}
+
 function runBuild() {
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
   const result = spawnSync(npm, ['run', 'build'], {
@@ -26,7 +49,7 @@ function runBuild() {
 }
 
 async function maybeBuild(result) {
-  if (!['added', 'edited'].includes(result?.status)) return
+  if (!['added', 'batch-added', 'edited'].includes(result?.status)) return
   if (await confirmBuild()) runBuild()
 }
 
@@ -37,6 +60,7 @@ async function runManager() {
       message: 'Choose a workflow',
       choices: [
         { name: 'Add a new photograph', value: 'add' },
+        { name: 'Add photographs from a folder or ZIP', value: 'add-batch' },
         { name: 'Edit an existing photograph', value: 'edit' },
         { name: 'Review missing / outdated metadata', value: 'audit' },
         { name: 'Validate photo catalog', value: 'validate' },
@@ -50,6 +74,12 @@ async function runManager() {
         validate: (value) => value.trim().length > 0 || 'Enter an image path.',
       })
       await maybeBuild(await runAddWorkflow(sourcePath.trim(), photoManagerConfig))
+    } else if (action === 'add-batch') {
+      const sourcePath = await input({
+        message: 'Source folder or ZIP path',
+        validate: (value) => value.trim().length > 0 || 'Enter a folder or ZIP path.',
+      })
+      await maybeBuild(await runBatchWorkflow(sourcePath.trim(), photoManagerConfig))
     } else if (action === 'edit') {
       await maybeBuild(await runEditWorkflow('', photoManagerConfig))
     } else if (action === 'audit') {
@@ -66,6 +96,26 @@ async function main() {
   if (command === 'manage') return runManager()
   if (command === 'add') {
     const result = await runAddWorkflow(positional[0], photoManagerConfig, { dryRun })
+    await maybeBuild(result)
+    return 0
+  }
+  if (command === 'add-batch') {
+    const batchArguments = parseBatchArguments(rawArguments)
+    if (batchArguments.applyProposal) {
+      if (batchArguments.dryRun || batchArguments.model || batchArguments.positional.length) {
+        throw new Error('--apply-proposal cannot be combined with a source path, --dry-run, or --model.')
+      }
+      const result = await runApplyProposalWorkflow(
+        batchArguments.applyProposal,
+        photoManagerConfig,
+      )
+      await maybeBuild(result)
+      return 0
+    }
+    const result = await runBatchWorkflow(batchArguments.positional[0], photoManagerConfig, {
+      dryRun: batchArguments.dryRun,
+      analysisOptions: batchArguments.model ? { model: batchArguments.model } : undefined,
+    })
     await maybeBuild(result)
     return 0
   }
@@ -86,7 +136,7 @@ async function main() {
 try {
   process.exitCode = await main()
 } catch (error) {
-  if (error?.name === 'ExitPromptError') {
+  if (error?.name === 'ExitPromptError' || error?.name === 'AbortError') {
     console.log('\nCancelled. No further files were changed.')
     process.exitCode = 0
   } else {

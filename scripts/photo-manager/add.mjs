@@ -1,5 +1,4 @@
 import { access } from 'node:fs/promises'
-import os from 'node:os'
 import path from 'node:path'
 import { confirm, input, select } from '@inquirer/prompts'
 import {
@@ -18,6 +17,7 @@ import {
 import { promptClassification } from './classify.mjs'
 import { formatBytes, heading, valueLabel } from './format.mjs'
 import { inspectImage, optimizeImage } from './images.mjs'
+import { resolveUserPath } from './paths.mjs'
 import {
   BACK,
   promptAlt,
@@ -28,10 +28,6 @@ import {
 } from './prompts.mjs'
 import { commitFiles } from './transaction.mjs'
 import { validateCatalogState } from './validate.mjs'
-
-function expandHome(filePath) {
-  return filePath.startsWith('~/') ? path.join(os.homedir(), filePath.slice(2)) : filePath
-}
 
 async function exists(filePath) {
   try {
@@ -66,7 +62,7 @@ export async function outputCollision(state, outputPath, src) {
   return registered || (await exists(outputPath))
 }
 
-export async function buildAddProposal({
+export async function preparePhotoImport({
   state,
   config,
   sourcePath,
@@ -79,6 +75,7 @@ export async function buildAddProposal({
   optionalPlacements = [],
   outputFilename,
   allowFlatten = false,
+  optimized: preparedOptimization,
 }) {
   const mapped = metadataForClassification(classification)
   const filename = normalizedOutputFilename(sourcePath, outputFilename)
@@ -87,28 +84,20 @@ export async function buildAddProposal({
     throw Object.assign(new Error(`${filename} already exists.`), { code: 'OUTPUT_COLLISION' })
   }
 
-  const optimized = await optimizeImage(sourcePath, config, { inspection, allowFlatten })
+  const optimized =
+    preparedOptimization ??
+    (await optimizeImage(sourcePath, config, { inspection, allowFlatten }))
   const photo = {
     src: target.src,
     alt: alt.trim(),
     width: optimized.width,
     height: optimized.height,
-    location,
-    year,
     ...mapped.metadata,
   }
+  if (location !== undefined) photo.location = location
+  if (year !== undefined) photo.year = year
   const recordErrors = validatePhotoRecord(mapped.catalog, photo)
   if (recordErrors.length) throw new Error(recordErrors.join('; '))
-
-  const nextState = cloneState(state)
-  insertPhoto(nextState, mapped.catalog, photo, placement)
-  applyOptionalPlacements(nextState, mapped.catalog, photo, optionalPlacements)
-  const validation = await validateCatalogState(nextState, config, {
-    fileOverrides: new Map([[photo.src, optimized.buffer]]),
-  })
-  if (!validation.valid) {
-    throw new Error(`Proposed catalog is invalid:\n${validation.errors.map((issue) => `${issue.subject}: ${issue.message}`).join('\n')}`)
-  }
 
   return {
     sourcePath,
@@ -120,6 +109,30 @@ export async function buildAddProposal({
     optionalPlacements,
     outputPath: target.outputPath,
     optimized,
+  }
+}
+
+export async function buildAddProposal(options) {
+  const { state, config } = options
+  const prepared = await preparePhotoImport(options)
+
+  const nextState = cloneState(state)
+  insertPhoto(nextState, prepared.catalog, prepared.photo, prepared.placement)
+  applyOptionalPlacements(
+    nextState,
+    prepared.catalog,
+    prepared.photo,
+    prepared.optionalPlacements,
+  )
+  const validation = await validateCatalogState(nextState, config, {
+    fileOverrides: new Map([[prepared.photo.src, prepared.optimized.buffer]]),
+  })
+  if (!validation.valid) {
+    throw new Error(`Proposed catalog is invalid:\n${validation.errors.map((issue) => `${issue.subject}: ${issue.message}`).join('\n')}`)
+  }
+
+  return {
+    ...prepared,
     nextState,
     validation,
   }
@@ -214,7 +227,7 @@ async function chooseOutputFilename(state, config, catalog, sourcePath, currentN
 
 export async function runAddWorkflow(sourceArgument, config, options = {}) {
   if (!sourceArgument) throw new Error('Provide a source image: npm run photo:add -- /path/to/photo.jpg')
-  const sourcePath = path.resolve(expandHome(sourceArgument))
+  const sourcePath = resolveUserPath(sourceArgument)
   const state = await loadCatalogState(config)
   const inspection = await inspectImage(sourcePath, config)
   printInspection(inspection, config)
@@ -285,7 +298,9 @@ export async function runAddWorkflow(sourceArgument, config, options = {}) {
         }
       } else if (stage === 'optional') {
         const mapped = metadataForClassification(draft.classification)
-        const value = await promptOptionalPlacements(mapped.catalog, mapped.metadata)
+        const value = await promptOptionalPlacements(mapped.catalog, mapped.metadata, {
+          includeNoSecondary: true,
+        })
         if (value === BACK) stage = 'placement'
         else {
           draft.optionalPlacements = value
@@ -352,7 +367,9 @@ export async function runAddWorkflow(sourceArgument, config, options = {}) {
         if (value !== BACK) draft.placement = value
       } else if (field === 'optional') {
         const mapped = metadataForClassification(draft.classification)
-        const value = await promptOptionalPlacements(mapped.catalog, mapped.metadata)
+        const value = await promptOptionalPlacements(mapped.catalog, mapped.metadata, {
+          includeNoSecondary: true,
+        })
         if (value !== BACK) draft.optionalPlacements = value
       }
       continue

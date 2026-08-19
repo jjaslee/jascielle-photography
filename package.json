@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "photo:manage": "node scripts/photo-manager/cli.mjs manage",
     "photo:add": "node scripts/photo-manager/cli.mjs add",
+    "photo:add-batch": "node scripts/photo-manager/cli.mjs add-batch",
     "photo:edit": "node scripts/photo-manager/cli.mjs edit",
     "photo:audit": "node scripts/photo-manager/cli.mjs audit",
     "photo:validate": "node scripts/photo-manager/cli.mjs validate",

@@ -238,6 +238,15 @@
     "height": 1600
   },
   {
+    "src": "/images/places/IMG_6002.jpg",
+    "alt": "Lighthouse on a cliff with a boat passing.",
+    "width": 1467,
+    "height": 2200,
+    "location": "Point Reyes Lighthouse",
+    "year": 2026,
+    "theme": "water"
+  },
+  {
     "src": "/images/places/IMG_8908.jpg",
     "alt": "Traditional garden with bonsai trees and high-rises",
     "theme": "green",

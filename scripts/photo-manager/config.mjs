@@ -9,6 +9,7 @@ export function createConfig(rootDir = projectRoot) {
     rootDir,
     publicDir: path.join(rootDir, 'public'),
     manifestDir,
+    proposalDir: path.join(rootDir, '.photo-manager/proposals'),
     placementsPath: path.join(manifestDir, 'sitePlacements.json'),
     maxLongEdge: 2200,
     jpegQuality: 82,

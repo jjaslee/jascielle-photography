@@ -303,12 +303,22 @@ html.lenis body {
 
 .work-gallery-viewport::before {
   left: calc(-1 * var(--gallery-side-safe));
-  background: linear-gradient(to right, #000 0%, #000 52%, transparent 100%);
+  background: linear-gradient(
+    to right,
+    rgb(var(--bg)) 0%,
+    rgb(var(--bg)) 52%,
+    rgb(var(--bg) / 0) 100%
+  );
 }
 
 .work-gallery-viewport::after {
   right: calc(-1 * var(--gallery-side-safe));
-  background: linear-gradient(to left, #000 0%, #000 52%, transparent 100%);
+  background: linear-gradient(
+    to left,
+    rgb(var(--bg)) 0%,
+    rgb(var(--bg)) 52%,
+    rgb(var(--bg) / 0) 100%
+  );
 }
 
 .work-gallery-img {
@@ -331,7 +341,7 @@ html.lenis body {
 }
 
 .work-gallery-inspectable:focus-visible {
-  outline: 1px solid rgb(255 255 255 / 0.9);
+  outline: 1px solid rgb(var(--fg) / 0.9);
   outline-offset: 4px;
 }
 
@@ -361,6 +371,14 @@ html.lenis body {
   place-items: center;
   padding: clamp(24px, 4vw, 64px);
   pointer-events: none;
+}
+
+.work-image-lightbox__figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .work-image-lightbox__frame {
@@ -394,7 +412,6 @@ html.lenis body {
 
 .work-image-lightbox__close,
 .work-image-lightbox__caption {
-  position: fixed;
   z-index: 1;
   opacity: 0;
   transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -438,16 +455,27 @@ html.lenis body {
 }
 
 .work-image-lightbox__caption {
-  left: var(--page-side-gutter);
-  bottom: clamp(24px, 4vh, 44px);
-  margin: 0;
+  display: flex;
+  width: 100%;
+  margin: 12px 0 0;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 0.72rem;
   font-weight: 300;
+  line-height: 1.4;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgb(255 255 255 / 0.72);
   cursor: default;
+  pointer-events: auto;
+}
+
+.work-image-lightbox__caption-location {
+  text-align: left;
+}
+
+.work-image-lightbox__caption-year {
+  margin-left: auto;
+  text-align: right;
 }
 
 .work-image-lightbox.is-image-ready .work-image-lightbox__caption {
@@ -515,7 +543,7 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
 }
 
 .work-gallery-chapter .featured-cta-link {
-  color: rgb(255 255 255 / 0.65);
+  color: rgb(var(--fg) / 0.65);
 }
 
 .work-gallery-chapter .featured-cta-link:hover,
@@ -525,7 +553,7 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
 }
 
 .work-gallery-static .featured-cta-link {
-  color: rgb(255 255 255 / 0.65);
+  color: rgb(var(--fg) / 0.65);
 }
 
 .work-gallery-static .featured-cta-link:hover,
@@ -571,9 +599,9 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
   top: 0;
   background: linear-gradient(
     to bottom,
-    #000 0%,
-    rgb(0 0 0 / 0.82) 30%,
-    transparent 100%
+    rgb(var(--bg)) 0%,
+    rgb(var(--bg) / 0.82) 30%,
+    rgb(var(--bg) / 0) 100%
   );
 }
 
@@ -581,9 +609,9 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
   bottom: 0;
   background: linear-gradient(
     to top,
-    #000 0%,
-    rgb(0 0 0 / 0.82) 30%,
-    transparent 100%
+    rgb(var(--bg)) 0%,
+    rgb(var(--bg) / 0.82) 30%,
+    rgb(var(--bg) / 0) 100%
   );
 }
 
@@ -627,11 +655,6 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
 
   .work-image-lightbox__close {
     bottom: calc(100% + 10px);
-  }
-
-  .work-image-lightbox__caption {
-    left: clamp(16px, 4vw, 28px);
-    bottom: max(18px, env(safe-area-inset-bottom));
   }
 
   .work-category-layout {
@@ -679,7 +702,7 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
   bottom: 0;
   left: 0;
   height: 1px;
-  background-color: rgb(255 255 255 / 0.85);
+  background-color: rgb(var(--fg) / 0.85);
   transition-property: left, width;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
@@ -1140,18 +1163,27 @@ html[data-work-category-transition='backward']::view-transition-new(work-categor
 }
 
 /* Hero initial entrance */
-.hero-intro__name-mask {
+.hero-intro__name-mask,
+.hero-intro__name-inner {
   display: inline-block;
+  padding-right: 0.55em;
+  padding-left: 1.1em;
+  margin-right: -0.55em;
+  margin-left: -1.1em;
+}
+
+.hero-intro__name-mask {
   vertical-align: bottom;
 }
 
 .hero-intro .hero-intro__name-inner {
-  display: inline-block;
-  clip-path: inset(-0.25em 100% -0.58em -0.8em);
-  animation: hero-intro-name 750ms cubic-bezier(0.22, 1, 0.36, 1) 0ms forwards;
+  animation: hero-intro-name 750ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes hero-intro-name {
+  from {
+    clip-path: inset(-0.25em 100% -0.58em -0.8em);
+  }
   to {
     clip-path: inset(-0.25em -0.32em -0.58em -0.8em);
   }
