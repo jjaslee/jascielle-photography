@@ -192,7 +192,7 @@ export default function About() {
 
         <AboutReveal>
           <div className="origin-top will-change-transform" style={s(0)}>
-            <h1 className="font-display font-normal leading-[1.1] text-ink text-[clamp(4rem,6vw,6.5rem)]">
+            <h1 className="inline-block overflow-visible px-[0.75em] font-display font-normal leading-[1.1] text-ink text-[clamp(4rem,6vw,6.5rem)]">
               About
             </h1>
           </div>

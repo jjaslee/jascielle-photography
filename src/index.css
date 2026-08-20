@@ -300,6 +300,7 @@ html.lenis body {
 }
 
 .work-gallery-stage {
+  --work-gallery-hover-overscan: 3px; /* ceil(200px max tile × (1.025 - 1) ÷ 2) */
   position: relative;
   flex: 0 0 100%;
   width: 100%;
@@ -309,8 +310,8 @@ html.lenis body {
 .work-gallery-stage::after {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: calc(-1 * var(--work-gallery-hover-overscan));
+  bottom: calc(-1 * var(--work-gallery-hover-overscan));
   z-index: 5;
   width: calc(var(--gallery-side-safe) + var(--gallery-edge-fade));
   pointer-events: none;
