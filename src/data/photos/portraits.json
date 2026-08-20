@@ -5,7 +5,9 @@
     "session": "grad",
     "theme": "moody",
     "width": 1066,
-    "height": 1600
+    "height": 1600,
+    "location": "Memorial Glade, UC Berkeley",
+    "year": 2026
   },
   {
     "src": "/images/portraits/IMG_2336.jpg",
@@ -13,7 +15,9 @@
     "session": "grad",
     "theme": "bright",
     "width": 1065,
-    "height": 1600
+    "height": 1600,
+    "location": "Berkeley Rose Garden",
+    "year": 2026
   },
   {
     "src": "/images/portraits/IMG_2307.jpg",
@@ -21,7 +25,9 @@
     "session": "grad",
     "theme": "bright",
     "width": 1065,
-    "height": 1600
+    "height": 1600,
+    "location": "Berkeley Rose Garden",
+    "year": 2026
   },
   {
     "src": "/images/portraits/IMG_4262.jpg",
@@ -29,7 +35,9 @@
     "session": "grad",
     "theme": "moody",
     "width": 1066,
-    "height": 1600
+    "height": 1600,
+    "location": "UC Berkeley",
+    "year": 2026
   },
   {
     "src": "/images/portraits/IMG_2095.jpg",
@@ -37,7 +45,9 @@
     "session": "grad",
     "theme": "bright",
     "width": 1065,
-    "height": 1600
+    "height": 1600,
+    "location": "Berkeley Rose Garden",
+    "year": 2026
   },
   {
     "src": "/images/portraits/IMG_1995.jpg",
@@ -45,7 +55,9 @@
     "session": "grad",
     "theme": "bright",
     "width": 1065,
-    "height": 1600
+    "height": 1600,
+    "location": "Berkeley Rose Garden",
+    "year": 2026
   },
   {
     "src": "/images/portraits/IMG_2827.jpg",
@@ -53,7 +65,9 @@
     "session": "grad",
     "theme": "bright",
     "width": 1131,
-    "height": 1600
+    "height": 1600,
+    "location": "Live Oak Park, Berkeley",
+    "year": 2026
   },
   {
     "src": "/images/portraits/IMG_4038.jpg",
@@ -61,7 +75,9 @@
     "session": "grad",
     "theme": "bright",
     "width": 1065,
-    "height": 1600
+    "height": 1600,
+    "location": "Wheeler Hall, UC Berkeley",
+    "year": 2026
   },
   {
     "src": "/images/portraits/IMG_3998.jpg",
@@ -69,7 +85,9 @@
     "session": "grad",
     "theme": "moody",
     "width": 1028,
-    "height": 1600
+    "height": 1600,
+    "location": "Wheeler Hall, UC Berkeley",
+    "year": 2026
   },
   {
     "src": "/images/portraits/IMG_3853.jpg",
@@ -77,7 +95,9 @@
     "session": "grad",
     "theme": "bright",
     "width": 1065,
-    "height": 1600
+    "height": 1600,
+    "location": "Alumni House, UC Berkeley",
+    "year": 2026
   },
   {
     "src": "/images/portraits/IMG_4069.jpg",
@@ -85,6 +105,8 @@
     "session": "grad",
     "theme": "moody",
     "width": 1066,
-    "height": 1600
+    "height": 1600,
+    "location": "UC Berkeley",
+    "year": 2026
   }
 ]
