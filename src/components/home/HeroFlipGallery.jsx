@@ -12,7 +12,12 @@ const TILT_MAX_Y = 10
 const FLIP_DURATION = 0.8
 const AUTOPLAY_MS = 8000
 const TILT_LERP = 0.1
-const ORIENTATION_RANGE_DEG = 25
+const ORIENTATION_PARALLAX_RANGE_DEG = 25
+const ORIENTATION_TILT_RANGE_DEG = 18
+const ORIENTATION_TILT_DEAD_ZONE_DEG = 1.25
+const ORIENTATION_TILT_RESPONSE = 0.85
+const ORIENTATION_TILT_MAX_X = 11
+const ORIENTATION_TILT_MAX_Y = 14
 const MOBILE_TILT_MAX_X = 9
 const MOBILE_TILT_MAX_Y = 11
 const MOBILE_TILT_MAX_SCALE = 1.03
@@ -64,6 +69,23 @@ function mobileTiltFromNormalizedInput(horizontal, vertical) {
     x: vertical * MOBILE_TILT_MAX_X,
     y: -horizontal * MOBILE_TILT_MAX_Y,
   }
+}
+
+function orientationTiltFromNormalizedInput(horizontal, vertical) {
+  return {
+    x: vertical * ORIENTATION_TILT_MAX_X,
+    y: -horizontal * ORIENTATION_TILT_MAX_Y,
+  }
+}
+
+function normalizeOrientationTilt(delta) {
+  const magnitude = Math.abs(delta)
+  if (magnitude <= ORIENTATION_TILT_DEAD_ZONE_DEG) return 0
+
+  const normalized =
+    (magnitude - ORIENTATION_TILT_DEAD_ZONE_DEG) /
+    (ORIENTATION_TILT_RANGE_DEG - ORIENTATION_TILT_DEAD_ZONE_DEG)
+  return Math.sign(delta) * Math.pow(clampOrientation(normalized), ORIENTATION_TILT_RESPONSE)
 }
 
 function sampleIntroTiltCue(elapsed) {
@@ -153,7 +175,13 @@ export default function HeroFlipGallery({
   const autoplayRef = useRef(null)
   const touchStartRef = useRef(null)
   const touchBoundsRef = useRef(null)
-  const orientationRef = useRef({ x: 0, y: 0, available: false })
+  const orientationRef = useRef({
+    x: 0,
+    y: 0,
+    tiltX: 0,
+    tiltY: 0,
+    available: false,
+  })
   const motionKicksRef = useRef(new Set())
   const heroPointerRef = useRef({ nx: 0, ny: 0, influence: 0, touching: false })
   const orientationBaselineRef = useRef(null)
@@ -178,72 +206,113 @@ export default function HeroFlipGallery({
     motionKicksRef.current.forEach((kick) => kick())
   }, [])
 
-  const requestOrientationAccess = useCallback(() => {
+  const resetOrientation = useCallback(() => {
+    orientationBaselineRef.current = null
+    orientationRef.current.x = 0
+    orientationRef.current.y = 0
+    orientationRef.current.tiltX = 0
+    orientationRef.current.tiltY = 0
+    orientationRef.current.available = false
+    motionKicksRef.current.forEach((kick) => kick())
+  }, [])
+
+  const startOrientationListening = useCallback(() => {
     if (
       reducedMotion ||
+      prefersReducedMotion() ||
       !canUseOrientation() ||
-      orientationPermissionRef.current !== 'idle'
+      orientationCleanupRef.current
+    ) {
+      return false
+    }
+
+    const onOrientation = (event) => {
+      if (!Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return
+
+      const axes = screenAdjustedAxes(event.beta, event.gamma)
+      const baseline = orientationBaselineRef.current
+      if (!baseline) {
+        orientationBaselineRef.current = { ...axes, samples: 1 }
+        return
+      }
+
+      if (baseline.samples < 4) {
+        const samples = baseline.samples + 1
+        baseline.x += (axes.x - baseline.x) / samples
+        baseline.y += (axes.y - baseline.y) / samples
+        baseline.samples = samples
+        if (samples < 4) return
+      }
+
+      const deltaX = axes.x - baseline.x
+      const deltaY = axes.y - baseline.y
+      orientationRef.current.x = clampOrientation(
+        deltaX / ORIENTATION_PARALLAX_RANGE_DEG,
+      )
+      orientationRef.current.y = clampOrientation(
+        deltaY / ORIENTATION_PARALLAX_RANGE_DEG,
+      )
+      orientationRef.current.tiltX = normalizeOrientationTilt(deltaX)
+      orientationRef.current.tiltY = normalizeOrientationTilt(deltaY)
+      orientationRef.current.available = true
+      orientationPermissionRef.current = 'active'
+      if (introTiltCueRef.current.active) cancelIntroTiltCue()
+      motionKicksRef.current.forEach((kick) => kick())
+    }
+
+    window.addEventListener('deviceorientation', onOrientation, { passive: true })
+    window.addEventListener('orientationchange', resetOrientation)
+    window.screen?.orientation?.addEventListener?.('change', resetOrientation)
+    orientationCleanupRef.current = () => {
+      window.removeEventListener('deviceorientation', onOrientation)
+      window.removeEventListener('orientationchange', resetOrientation)
+      window.screen?.orientation?.removeEventListener?.('change', resetOrientation)
+    }
+
+    const OrientationEvent = window.DeviceOrientationEvent
+    orientationPermissionRef.current =
+      typeof OrientationEvent.requestPermission === 'function'
+        ? 'awaiting-gesture'
+        : 'listening'
+    return true
+  }, [cancelIntroTiltCue, reducedMotion, resetOrientation])
+
+  const requestOrientationAccess = useCallback(() => {
+    if (reducedMotion || prefersReducedMotion() || !canUseOrientation()) return
+
+    const OrientationEvent = window.DeviceOrientationEvent
+    const permissionRequired =
+      typeof OrientationEvent.requestPermission === 'function'
+    if (
+      permissionRequired &&
+      (orientationPermissionRef.current === 'requested' ||
+        orientationPermissionRef.current === 'denied' ||
+        orientationPermissionRef.current === 'active')
     ) {
       return
     }
 
+    startOrientationListening()
+    if (!permissionRequired) return
+
     orientationPermissionRef.current = 'requested'
-    const OrientationEvent = window.DeviceOrientationEvent
-
-    const enable = (permission) => {
-      if (permission && permission !== 'granted') {
-        orientationPermissionRef.current = 'denied'
-        return
-      }
-
-      const resetOrientation = () => {
-        orientationBaselineRef.current = null
-        orientationRef.current.x = 0
-        orientationRef.current.y = 0
-        orientationRef.current.available = false
-        motionKicksRef.current.forEach((kick) => kick())
-      }
-
-      const onOrientation = (event) => {
-        if (!Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return
-
-        const axes = screenAdjustedAxes(event.beta, event.gamma)
-        if (!orientationBaselineRef.current) {
-          orientationBaselineRef.current = axes
+    const denyOrientationAccess = () => {
+      orientationPermissionRef.current = 'denied'
+      orientationCleanupRef.current?.()
+      orientationCleanupRef.current = null
+      resetOrientation()
+    }
+    OrientationEvent.requestPermission()
+      .then((permission) => {
+        if (permission === 'granted') {
+          orientationPermissionRef.current = 'listening'
+          startOrientationListening()
+          return
         }
-
-        orientationRef.current.x = clampOrientation(
-          (axes.x - orientationBaselineRef.current.x) / ORIENTATION_RANGE_DEG,
-        )
-        orientationRef.current.y = clampOrientation(
-          (axes.y - orientationBaselineRef.current.y) / ORIENTATION_RANGE_DEG,
-        )
-        orientationRef.current.available = true
-        if (introTiltCueRef.current.active) cancelIntroTiltCue()
-        motionKicksRef.current.forEach((kick) => kick())
-      }
-
-      window.addEventListener('deviceorientation', onOrientation, {
-        passive: true,
+        denyOrientationAccess()
       })
-      window.addEventListener('orientationchange', resetOrientation)
-      window.screen?.orientation?.addEventListener?.('change', resetOrientation)
-      orientationCleanupRef.current = () => {
-        window.removeEventListener('deviceorientation', onOrientation)
-        window.removeEventListener('orientationchange', resetOrientation)
-        window.screen?.orientation?.removeEventListener?.('change', resetOrientation)
-      }
-      orientationPermissionRef.current = 'active'
-    }
-
-    if (typeof OrientationEvent.requestPermission === 'function') {
-      OrientationEvent.requestPermission().then(enable).catch(() => {
-        orientationPermissionRef.current = 'denied'
-      })
-    } else {
-      enable('granted')
-    }
-  }, [cancelIntroTiltCue, reducedMotion])
+      .catch(denyOrientationAccess)
+  }, [reducedMotion, resetOrientation, startOrientationListening])
 
   useEffect(() => {
     return () => {
@@ -261,10 +330,17 @@ export default function HeroFlipGallery({
     orientationCleanupRef.current?.()
     orientationCleanupRef.current = null
     orientationPermissionRef.current = 'disabled'
-    orientationRef.current.x = 0
-    orientationRef.current.y = 0
-    orientationRef.current.available = false
-  }, [reducedMotion])
+    resetOrientation()
+  }, [reducedMotion, resetOrientation])
+
+  useEffect(() => {
+    if (!interactionReady || reducedMotion || prefersReducedMotion()) return
+    if (!canUseOrientation()) {
+      orientationPermissionRef.current = 'unsupported'
+      return
+    }
+    startOrientationListening()
+  }, [interactionReady, reducedMotion, startOrientationListening])
 
   const count = images.length
 
@@ -423,9 +499,9 @@ export default function HeroFlipGallery({
         targetX = touchTiltTarget.x
         targetY = touchTiltTarget.y
       } else if (orientationTilt && orientation.available) {
-        const orientationTiltTarget = mobileTiltFromNormalizedInput(
-          -orientation.x,
-          -orientation.y,
+        const orientationTiltTarget = orientationTiltFromNormalizedInput(
+          -orientation.tiltX,
+          -orientation.tiltY,
         )
         targetX = orientationTiltTarget.x
         targetY = orientationTiltTarget.y
@@ -436,9 +512,9 @@ export default function HeroFlipGallery({
         targetX = pointerTarget.x
         targetY = pointerTarget.y
       } else if (orientationTilt) {
-        const orientationTiltTarget = mobileTiltFromNormalizedInput(
-          -orientation.x,
-          -orientation.y,
+        const orientationTiltTarget = orientationTiltFromNormalizedInput(
+          -orientation.tiltX,
+          -orientation.tiltY,
         )
         targetX = orientationTiltTarget.x
         targetY = orientationTiltTarget.y
@@ -546,6 +622,7 @@ export default function HeroFlipGallery({
 
   const onPointerDown = () => {
     if (!interactionRef.current) return
+    requestOrientationAccess()
     cancelIntroTiltCue()
     resetAutoplay()
   }
@@ -579,6 +656,7 @@ export default function HeroFlipGallery({
   const onTouchStart = (e) => {
     if (!interactionRef.current) return
     const touch = e.touches[0]
+    requestOrientationAccess()
     cancelIntroTiltCue()
     touchBoundsRef.current = stageRef.current?.getBoundingClientRect() ?? null
     touchStartRef.current = touch
@@ -596,7 +674,6 @@ export default function HeroFlipGallery({
   const onTouchEnd = (e) => {
     if (!interactionRef.current) return
     releaseTouchTilt()
-    requestOrientationAccess()
     const start = touchStartRef.current
     touchBoundsRef.current = null
     if (start == null) return
