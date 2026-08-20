@@ -18,6 +18,10 @@ const ORIENTATION_TILT_DEAD_ZONE_DEG = 1.25
 const ORIENTATION_TILT_RESPONSE = 0.85
 const ORIENTATION_TILT_MAX_X = 11
 const ORIENTATION_TILT_MAX_Y = 14
+const ORIENTATION_STATIONARY_THRESHOLD_DEG = 0.65
+const ORIENTATION_IDLE_DELAY_MS = 2000
+const ORIENTATION_IDLE_RETURN_MS = 700
+const ORIENTATION_REACTIVATION_THRESHOLD_DEG = 1.75
 const MOBILE_TILT_MAX_X = 9
 const MOBILE_TILT_MAX_Y = 11
 const MOBILE_TILT_MAX_SCALE = 1.03
@@ -49,14 +53,21 @@ function canUseOrientation() {
   return (
     typeof window !== 'undefined' &&
     'DeviceOrientationEvent' in window &&
-    window.matchMedia('(pointer: coarse)').matches
+    hasTouchInput()
+  )
+}
+
+function hasTouchInput() {
+  return (
+    (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0) ||
+    window.matchMedia('(any-pointer: coarse)').matches
   )
 }
 
 function canUseTouchTilt() {
   return (
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
-    window.matchMedia('(pointer: coarse)').matches
+    hasTouchInput()
   )
 }
 
@@ -181,10 +192,18 @@ export default function HeroFlipGallery({
     tiltX: 0,
     tiltY: 0,
     available: false,
+    idle: false,
   })
   const motionKicksRef = useRef(new Set())
   const heroPointerRef = useRef({ nx: 0, ny: 0, influence: 0, touching: false })
   const orientationBaselineRef = useRef(null)
+  const orientationActivityRef = useRef({
+    state: 'calibrating',
+    latestAxes: null,
+    idleAxes: null,
+    meaningfulDelta: null,
+    idleTimer: 0,
+  })
   const orientationPermissionRef = useRef('idle')
   const orientationCleanupRef = useRef(null)
   const introTiltCueRef = useRef({
@@ -207,12 +226,36 @@ export default function HeroFlipGallery({
   }, [])
 
   const resetOrientation = useCallback(() => {
+    const activity = orientationActivityRef.current
+    window.clearTimeout(activity.idleTimer)
+    activity.state = 'calibrating'
+    activity.latestAxes = null
+    activity.idleAxes = null
+    activity.meaningfulDelta = null
+    activity.idleTimer = 0
     orientationBaselineRef.current = null
     orientationRef.current.x = 0
     orientationRef.current.y = 0
     orientationRef.current.tiltX = 0
     orientationRef.current.tiltY = 0
     orientationRef.current.available = false
+    orientationRef.current.idle = false
+    motionKicksRef.current.forEach((kick) => kick())
+  }, [])
+
+  const enterOrientationIdle = useCallback(() => {
+    const activity = orientationActivityRef.current
+    if (activity.state !== 'active') return
+
+    activity.state = 'idle'
+    activity.idleAxes = activity.latestAxes
+    activity.idleTimer = 0
+    orientationRef.current.x = 0
+    orientationRef.current.y = 0
+    orientationRef.current.tiltX = 0
+    orientationRef.current.tiltY = 0
+    orientationRef.current.available = false
+    orientationRef.current.idle = true
     motionKicksRef.current.forEach((kick) => kick())
   }, [])
 
@@ -226,10 +269,38 @@ export default function HeroFlipGallery({
       return false
     }
 
+    const scheduleIdleReturn = () => {
+      const activity = orientationActivityRef.current
+      window.clearTimeout(activity.idleTimer)
+      activity.idleTimer = window.setTimeout(
+        enterOrientationIdle,
+        ORIENTATION_IDLE_DELAY_MS,
+      )
+    }
+
     const onOrientation = (event) => {
       if (!Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return
 
       const axes = screenAdjustedAxes(event.beta, event.gamma)
+      const activity = orientationActivityRef.current
+      activity.latestAxes = axes
+
+      if (activity.state === 'idle') {
+        const idleAxes = activity.idleAxes ?? axes
+        const movement = Math.max(
+          Math.abs(axes.x - idleAxes.x),
+          Math.abs(axes.y - idleAxes.y),
+        )
+        if (movement < ORIENTATION_REACTIVATION_THRESHOLD_DEG) return
+
+        activity.state = 'calibrating'
+        activity.idleAxes = null
+        activity.meaningfulDelta = null
+        orientationBaselineRef.current = { ...axes, samples: 1 }
+        orientationRef.current.idle = false
+        return
+      }
+
       const baseline = orientationBaselineRef.current
       if (!baseline) {
         orientationBaselineRef.current = { ...axes, samples: 1 }
@@ -246,6 +317,23 @@ export default function HeroFlipGallery({
 
       const deltaX = axes.x - baseline.x
       const deltaY = axes.y - baseline.y
+      const previousMeaningful = activity.meaningfulDelta
+      const meaningfulMovement = previousMeaningful
+        ? Math.max(
+            Math.abs(deltaX - previousMeaningful.x),
+            Math.abs(deltaY - previousMeaningful.y),
+          )
+        : Infinity
+
+      if (
+        activity.state === 'calibrating' ||
+        meaningfulMovement >= ORIENTATION_STATIONARY_THRESHOLD_DEG
+      ) {
+        activity.state = 'active'
+        activity.meaningfulDelta = { x: deltaX, y: deltaY }
+        scheduleIdleReturn()
+      }
+
       orientationRef.current.x = clampOrientation(
         deltaX / ORIENTATION_PARALLAX_RANGE_DEG,
       )
@@ -255,6 +343,7 @@ export default function HeroFlipGallery({
       orientationRef.current.tiltX = normalizeOrientationTilt(deltaX)
       orientationRef.current.tiltY = normalizeOrientationTilt(deltaY)
       orientationRef.current.available = true
+      orientationRef.current.idle = false
       orientationPermissionRef.current = 'active'
       if (introTiltCueRef.current.active) cancelIntroTiltCue()
       motionKicksRef.current.forEach((kick) => kick())
@@ -275,7 +364,7 @@ export default function HeroFlipGallery({
         ? 'awaiting-gesture'
         : 'listening'
     return true
-  }, [cancelIntroTiltCue, reducedMotion, resetOrientation])
+  }, [cancelIntroTiltCue, enterOrientationIdle, reducedMotion, resetOrientation])
 
   const requestOrientationAccess = useCallback(() => {
     if (reducedMotion || prefersReducedMotion() || !canUseOrientation()) return
@@ -317,6 +406,7 @@ export default function HeroFlipGallery({
   useEffect(() => {
     return () => {
       orientationCleanupRef.current?.()
+      window.clearTimeout(orientationActivityRef.current.idleTimer)
     }
   }, [])
 
@@ -464,8 +554,8 @@ export default function HeroFlipGallery({
     const stage = stageRef.current
     const tiltEl = tiltRef.current
     const pointerTilt = canTilt()
-    const touchTilt = !pointerTilt && canUseTouchTilt()
-    const orientationTilt = !pointerTilt && canUseOrientation()
+    const touchTilt = canUseTouchTilt()
+    const orientationTilt = canUseOrientation()
     const mobileTilt = window.matchMedia('(max-width: 767px)').matches
     if (!stage || !tiltEl || (!pointerTilt && !touchTilt && !orientationTilt)) return
 
@@ -473,8 +563,11 @@ export default function HeroFlipGallery({
     const current = { x: 0, y: 0 }
     let raf = 0
     let running = true
+    let lastFrameAt = performance.now()
 
-    const apply = () => {
+    const apply = (frameAt) => {
+      const frameDuration = Math.min(32, Math.max(0, frameAt - lastFrameAt))
+      lastFrameAt = frameAt
       if (!interactionRef.current) {
         current.x = 0
         current.y = 0
@@ -493,11 +586,15 @@ export default function HeroFlipGallery({
       }
       let targetX = 0
       let targetY = 0
+      let idleReturning = false
 
       if (touchTilt && touch.touching && !flippingRef.current) {
         const touchTiltTarget = mobileTiltFromNormalizedInput(touch.nx, touch.ny)
         targetX = touchTiltTarget.x
         targetY = touchTiltTarget.y
+      } else if (pointerTilt && touch.influence > 0) {
+        targetX = pointerTarget.x
+        targetY = pointerTarget.y
       } else if (orientationTilt && orientation.available) {
         const orientationTiltTarget = orientationTiltFromNormalizedInput(
           -orientation.tiltX,
@@ -508,9 +605,6 @@ export default function HeroFlipGallery({
       } else if (cue.active) {
         targetX = cue.x
         targetY = cue.y
-      } else if (pointerTilt) {
-        targetX = pointerTarget.x
-        targetY = pointerTarget.y
       } else if (orientationTilt) {
         const orientationTiltTarget = orientationTiltFromNormalizedInput(
           -orientation.tiltX,
@@ -518,10 +612,16 @@ export default function HeroFlipGallery({
         )
         targetX = orientationTiltTarget.x
         targetY = orientationTiltTarget.y
+        idleReturning = orientation.idle
+      } else if (pointerTilt) {
+        targetX = pointerTarget.x
+        targetY = pointerTarget.y
       }
       const tiltLerp = cue.active
         ? MOBILE_TILT_CUE_LERP
-        : TILT_LERP
+        : idleReturning
+          ? 1 - Math.pow(0.05, frameDuration / ORIENTATION_IDLE_RETURN_MS)
+          : TILT_LERP
       current.x += (targetX - current.x) * tiltLerp
       current.y += (targetY - current.y) * tiltLerp
       const tiltStrength = mobileTilt
@@ -549,11 +649,13 @@ export default function HeroFlipGallery({
 
     const kick = () => {
       if (!interactionRef.current || !running || raf) return
+      lastFrameAt = performance.now()
       raf = requestAnimationFrame(apply)
     }
 
     const onMove = (e) => {
       if (!interactionRef.current) return
+      if (heroPointerRef.current.touching) return
       if (introTiltCueRef.current.active) cancelIntroTiltCue()
       const rect = stage.getBoundingClientRect()
       const pointer = computeHeroPointer(e.clientX, e.clientY, rect)
@@ -706,11 +808,14 @@ export default function HeroFlipGallery({
 
   const front = images[frontIndex]
   const back = images[backIndex]
+  const touchCapable = hasTouchInput()
 
   return (
     <div
       ref={stageRef}
-      className="hero-flip-stage relative w-full aspect-[4/3] [perspective:725px] md:[perspective:800px] cursor-pointer select-none"
+      className={`hero-flip-stage relative w-full aspect-[4/3] [perspective:725px] md:[perspective:800px] cursor-pointer select-none${
+        touchCapable ? ' hero-flip-stage--touch-capable' : ''
+      }`}
       onClick={onClick}
       onPointerDown={onPointerDown}
       onTouchStart={onTouchStart}

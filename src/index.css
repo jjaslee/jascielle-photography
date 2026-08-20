@@ -1302,6 +1302,16 @@ html[data-work-category-transition='backward']::view-transition-new(work-categor
   }
 }
 
+@media (min-width: 768px) {
+  .hero-flip-stage--touch-capable::before {
+    content: '';
+    position: absolute;
+    inset: -72px;
+    z-index: 3;
+    pointer-events: auto;
+  }
+}
+
 @keyframes hero-intro-photo {
   to {
     opacity: 1;

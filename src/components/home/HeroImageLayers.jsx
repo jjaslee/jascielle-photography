@@ -40,14 +40,21 @@ function canOrientationParallax() {
   return (
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
     'DeviceOrientationEvent' in window &&
-    window.matchMedia('(pointer: coarse)').matches
+    hasTouchInput()
+  )
+}
+
+function hasTouchInput() {
+  return (
+    navigator.maxTouchPoints > 0 ||
+    window.matchMedia('(any-pointer: coarse)').matches
   )
 }
 
 function canTouchParallax() {
   return (
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
-    window.matchMedia('(pointer: coarse)').matches
+    hasTouchInput()
   )
 }
 
@@ -67,8 +74,8 @@ export default function HeroImageLayers({
   useEffect(() => {
     const stage = stageRef?.current
     const pointerParallax = canParallax()
-    const touchParallax = !pointerParallax && canTouchParallax()
-    const orientationParallax = !pointerParallax && canOrientationParallax()
+    const touchParallax = canTouchParallax()
+    const orientationParallax = canOrientationParallax()
     if (!stage || (!pointerParallax && !touchParallax && !orientationParallax)) return
 
     const current = { x: 0, y: 0 }
@@ -100,10 +107,10 @@ export default function HeroImageLayers({
       if (touching) {
         targetX = ptr.nx
         targetY = ptr.ny
-      } else if (pointerParallax) {
+      } else if (pointerParallax && ptr.influence > 0) {
         targetX = ptr.nx * ptr.influence
         targetY = ptr.ny * ptr.influence
-      } else {
+      } else if (orientationParallax) {
         targetX = orientation?.x ?? 0
         targetY = orientation?.y ?? 0
       }
