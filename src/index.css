@@ -299,8 +299,14 @@ html.lenis body {
   touch-action: pan-y;
 }
 
-.work-gallery-viewport::before,
-.work-gallery-viewport::after {
+.work-gallery-stage {
+  position: relative;
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+.work-gallery-stage::before,
+.work-gallery-stage::after {
   content: '';
   position: absolute;
   top: 0;
@@ -310,7 +316,7 @@ html.lenis body {
   pointer-events: none;
 }
 
-.work-gallery-viewport::before {
+.work-gallery-stage::before {
   left: calc(-1 * var(--gallery-side-safe));
   background: linear-gradient(
     to right,
@@ -320,7 +326,7 @@ html.lenis body {
   );
 }
 
-.work-gallery-viewport::after {
+.work-gallery-stage::after {
   right: calc(-1 * var(--gallery-side-safe));
   background: linear-gradient(
     to left,
@@ -810,8 +816,7 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
 }
 
 @media (min-width: 769px) {
-  .work-gallery-track {
-    position: relative;
+  .work-gallery-stage {
     top: calc(-1 * clamp(16px, 2vh, 24px));
   }
 

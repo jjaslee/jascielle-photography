@@ -33,6 +33,11 @@ const WHEEL_GAIN = 0.62
 const SCROLL_LERP = 0.09
 const KEYBOARD_SCROLL_RATIO = 0.2
 const TOUCH_DRAG_THRESHOLD = 8
+const TOUCH_VELOCITY_WINDOW_MS = 100
+const TOUCH_MOMENTUM_MIN_VELOCITY = 0.12
+const TOUCH_MOMENTUM_PROJECTION_MS = 220
+const TOUCH_MOMENTUM_MAX_RATIO = 0.4
+const TOUCH_MOMENTUM_MAX_DISTANCE = 360
 const ABOUT_EXIT_MS = 360
 const INITIAL_EDGE_COUNT = 12
 const SECTION_GAP = GAP
@@ -496,6 +501,7 @@ function WorkCategoryGalleryScroll({
   const rafRef = useRef(0)
   const categoryTransitionRef = useRef(false)
   const touchDragRef = useRef(null)
+  const touchMomentumRef = useRef(false)
   const suppressTouchClickRef = useRef(false)
   const suppressTouchClickTimerRef = useRef(0)
   const initialEndPendingRef = useRef(
@@ -641,6 +647,7 @@ function WorkCategoryGalleryScroll({
     const tick = () => {
       if (document.documentElement.dataset.workLightboxOpen !== undefined) {
         targetRef.current = translateRef.current
+        touchMomentumRef.current = false
         rafRef.current = requestAnimationFrame(tick)
         return
       }
@@ -656,6 +663,7 @@ function WorkCategoryGalleryScroll({
         translateRef.current = tgt
         setTranslateX(tgt)
         requestNearby(tgt)
+        touchMomentumRef.current = false
       }
 
       const viewport = viewportRef.current
@@ -688,6 +696,10 @@ function WorkCategoryGalleryScroll({
       if (maxScrollRef.current <= 0) return
       e.preventDefault()
       const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX
+      if (touchMomentumRef.current) {
+        targetRef.current = translateRef.current
+        touchMomentumRef.current = false
+      }
       targetRef.current = clamp(targetRef.current + delta * WHEEL_GAIN)
       requestNearby(targetRef.current)
     }
@@ -706,6 +718,10 @@ function WorkCategoryGalleryScroll({
       if (!viewportWidth || maxScrollRef.current <= 0) return
       event.preventDefault()
       const direction = event.key === 'ArrowRight' ? 1 : -1
+      if (touchMomentumRef.current) {
+        targetRef.current = translateRef.current
+        touchMomentumRef.current = false
+      }
       targetRef.current = clamp(
         targetRef.current + direction * viewportWidth * KEYBOARD_SCROLL_RATIO,
       )
@@ -738,12 +754,14 @@ function WorkCategoryGalleryScroll({
     window.clearTimeout(suppressTouchClickTimerRef.current)
     suppressTouchClickRef.current = false
     targetRef.current = translateRef.current
+    touchMomentumRef.current = false
     touchDragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       startProgress: translateRef.current,
       axis: null,
+      samples: [{ x: event.clientX, time: event.timeStamp }],
     }
   }, [])
 
@@ -774,6 +792,11 @@ function WorkCategoryGalleryScroll({
 
     if (drag.axis !== 'horizontal') return
 
+    drag.samples.push({ x: event.clientX, time: event.timeStamp })
+    drag.samples = drag.samples.filter(
+      (sample) => event.timeStamp - sample.time <= TOUCH_VELOCITY_WINDOW_MS,
+    )
+
     const next = Math.min(
       Math.max(drag.startProgress - deltaX, 0),
       maxScrollRef.current,
@@ -791,12 +814,46 @@ function WorkCategoryGalleryScroll({
     touchDragRef.current = null
     if (event.type !== 'pointerup' || drag.axis !== 'horizontal') return
 
+    drag.samples.push({ x: event.clientX, time: event.timeStamp })
+    drag.samples = drag.samples.filter(
+      (sample) => event.timeStamp - sample.time <= TOUCH_VELOCITY_WINDOW_MS,
+    )
+    const firstSample = drag.samples[0]
+    const lastSample = drag.samples.at(-1)
+    const elapsed = lastSample.time - firstSample.time
+    const velocity =
+      elapsed > 0 ? -(lastSample.x - firstSample.x) / elapsed : 0
+
+    if (!reduced && Math.abs(velocity) >= TOUCH_MOMENTUM_MIN_VELOCITY) {
+      const viewportWidth = viewportRef.current?.clientWidth ?? 0
+      const maxProjection = Math.min(
+        viewportWidth * TOUCH_MOMENTUM_MAX_RATIO,
+        TOUCH_MOMENTUM_MAX_DISTANCE,
+      )
+      const projection = Math.min(
+        Math.max(
+          velocity * TOUCH_MOMENTUM_PROJECTION_MS,
+          -maxProjection,
+        ),
+        maxProjection,
+      )
+      const projectedTarget = Math.min(
+        Math.max(translateRef.current + projection, 0),
+        maxScrollRef.current,
+      )
+      if (projectedTarget !== translateRef.current) {
+        targetRef.current = projectedTarget
+        touchMomentumRef.current = true
+        requestNearby(projectedTarget)
+      }
+    }
+
     suppressTouchClickRef.current = true
     window.clearTimeout(suppressTouchClickTimerRef.current)
     suppressTouchClickTimerRef.current = window.setTimeout(() => {
       suppressTouchClickRef.current = false
     }, 400)
-  }, [])
+  }, [reduced, requestNearby])
 
   useEffect(
     () => () => window.clearTimeout(suppressTouchClickTimerRef.current),
@@ -805,6 +862,7 @@ function WorkCategoryGalleryScroll({
 
   const scrollToSection = useCallback((sectionId) => {
     const startX = sectionStartsRef.current[sectionId] ?? 0
+    touchMomentumRef.current = false
     targetRef.current = Math.min(
       maxScrollRef.current,
       Math.max(0, startX),
@@ -904,60 +962,62 @@ function WorkCategoryGalleryScroll({
           event.stopPropagation()
         }}
       >
-        <div
-          ref={trackRef}
-          className="work-gallery-track flex flex-col will-change-transform"
-          style={{
-            gap: ROW_GAP,
-            paddingLeft: GAP,
-            width: trackWidth,
-            boxSizing: 'border-box',
-            transform: `translate3d(${-translateX}px, 0, 0)`,
-          }}
-        >
+        <div className="work-gallery-stage">
           <div
-            className="work-gallery-row flex items-end"
-            style={{ gap: sectionGap }}
+            ref={trackRef}
+            className="work-gallery-track flex flex-col will-change-transform"
+            style={{
+              gap: ROW_GAP,
+              paddingLeft: GAP,
+              width: trackWidth,
+              boxSizing: 'border-box',
+              transform: `translate3d(${-translateX}px, 0, 0)`,
+            }}
           >
-            {layoutSections.map((section) => (
-              <div
-                key={section.id}
-                className="flex shrink-0 items-end"
-                style={{ width: section.row1Width, gap: GAP }}
-              >
-                {section.row1.map((img) => (
-                  <GalleryImage
-                    key={img.src}
-                    image={img}
-                    requested={requestedSources.has(img.src)}
-                    priority={prioritySourcesRef.current.has(img.src)}
-                    onInspect={onInspect}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-          <div
-            className="work-gallery-row flex items-start"
-            style={{ gap: sectionGap, marginLeft: ROW2_OFFSET }}
-          >
-            {layoutSections.map((section) => (
-              <div
-                key={section.id}
-                className="flex shrink-0 items-start"
-                style={{ width: section.row2Width, gap: GAP }}
-              >
-                {section.row2.map((img) => (
-                  <GalleryImage
-                    key={img.src}
-                    image={img}
-                    requested={requestedSources.has(img.src)}
-                    priority={prioritySourcesRef.current.has(img.src)}
-                    onInspect={onInspect}
-                  />
-                ))}
-              </div>
-            ))}
+            <div
+              className="work-gallery-row flex items-end"
+              style={{ gap: sectionGap }}
+            >
+              {layoutSections.map((section) => (
+                <div
+                  key={section.id}
+                  className="flex shrink-0 items-end"
+                  style={{ width: section.row1Width, gap: GAP }}
+                >
+                  {section.row1.map((img) => (
+                    <GalleryImage
+                      key={img.src}
+                      image={img}
+                      requested={requestedSources.has(img.src)}
+                      priority={prioritySourcesRef.current.has(img.src)}
+                      onInspect={onInspect}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div
+              className="work-gallery-row flex items-start"
+              style={{ gap: sectionGap, marginLeft: ROW2_OFFSET }}
+            >
+              {layoutSections.map((section) => (
+                <div
+                  key={section.id}
+                  className="flex shrink-0 items-start"
+                  style={{ width: section.row2Width, gap: GAP }}
+                >
+                  {section.row2.map((img) => (
+                    <GalleryImage
+                      key={img.src}
+                      image={img}
+                      requested={requestedSources.has(img.src)}
+                      priority={prioritySourcesRef.current.has(img.src)}
+                      onInspect={onInspect}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
