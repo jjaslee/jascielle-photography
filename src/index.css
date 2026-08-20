@@ -699,6 +699,80 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
   }
 }
 
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 1024px) {
+  [data-site-nav] > nav {
+    height: 3rem;
+  }
+
+  .work-category-layout {
+    height: 100svh;
+    min-height: 100svh;
+    max-height: 100svh;
+    overflow: hidden;
+  }
+
+  .work-category-layout > main {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .work-category-layout > footer {
+    flex: none;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4px);
+  }
+
+  .work-category-layout > footer > div {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0;
+    text-align: left;
+  }
+
+  .work-gallery-mobile {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: clamp(16px, 3vw, 32px);
+    padding-top: calc(3rem + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  .work-gallery-mobile > .work-gallery-title {
+    grid-column: 1;
+    grid-row: 1;
+    padding-bottom: 0;
+    text-align: left;
+  }
+
+  .work-gallery-mobile-viewport {
+    --mobile-gallery-fade: 32px;
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .work-gallery-mobile-subnav {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    padding-block: 0;
+  }
+
+  .work-gallery-subnav.work-gallery-subnav--flow {
+    justify-content: flex-end;
+  }
+
+  .work-gallery-mobile-category-nav--previous {
+    padding-bottom: 24px;
+  }
+
+  .work-gallery-mobile-category-nav--next {
+    padding-top: 24px;
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .work-gallery-inspectable:hover {
     z-index: 1;
@@ -746,7 +820,8 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px),
+  (orientation: landscape) and (max-height: 600px) and (max-width: 1024px) {
   html:has(.work-gallery-mobile) .cursor-spotlight {
     display: none;
   }

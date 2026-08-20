@@ -41,6 +41,8 @@ const TOUCH_MOMENTUM_MAX_DISTANCE = 360
 const ABOUT_EXIT_MS = 360
 const INITIAL_EDGE_COUNT = 12
 const SECTION_GAP = GAP
+const MOBILE_GALLERY_QUERY =
+  '(max-width: 768px), (orientation: landscape) and (max-height: 600px) and (max-width: 1024px)'
 const decodedSources = new Set()
 const preloadPromises = new Map()
 
@@ -1464,7 +1466,7 @@ function WorkCategoryGalleryStatic({ category, onInspect, onExitToAbout }) {
 }
 
 export default function WorkCategoryGallery({ category }) {
-  const isMobile = useMatchMedia('(max-width: 768px)')
+  const isMobile = useMatchMedia(MOBILE_GALLERY_QUERY)
   const exitToAbout = useAboutBoundaryExit(category.id)
   const [inspectedImage, setInspectedImage] = useState(null)
   const [reduced, setReduced] = useState(() =>
