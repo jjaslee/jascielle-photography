@@ -13,11 +13,21 @@ const FLIP_DURATION = 0.8
 const AUTOPLAY_MS = 8000
 const TILT_LERP = 0.1
 const ORIENTATION_RANGE_DEG = 25
-const MOBILE_TILT_MAX_X = 3.5
-const MOBILE_TILT_MAX_Y = 5
-const TOUCH_TILT_MAX_X = 1.5
-const TOUCH_TILT_MAX_Y = 2
-const MOBILE_TILT_CUE_MS = 780
+const MOBILE_TILT_MAX_X = 9
+const MOBILE_TILT_MAX_Y = 11
+const MOBILE_TILT_MAX_SCALE = 1.03
+const MOBILE_TILT_SCALE_DEAD_ZONE = 0.08
+const MOBILE_TILT_CUE_LERP = 0.22
+const MOBILE_TILT_CUE_MS = 980
+const MOBILE_TILT_CUE_KEYFRAMES = [
+  { at: 0, x: 0, y: 0 },
+  { at: 120, x: -0.7, y: 1.5 },
+  { at: 240, x: -1.4, y: 3 },
+  { at: 420, x: -2.1, y: 4.5 },
+  { at: 560, x: -2.1, y: 4.5 },
+  { at: 720, x: -0.93, y: 2 },
+  { at: MOBILE_TILT_CUE_MS, x: 0, y: 0 },
+]
 
 function canTilt() {
   return (
@@ -47,6 +57,31 @@ function canUseTouchTilt() {
 
 function clampOrientation(value) {
   return Math.max(-1, Math.min(1, value))
+}
+
+function mobileTiltFromNormalizedInput(horizontal, vertical) {
+  return {
+    x: vertical * MOBILE_TILT_MAX_X,
+    y: -horizontal * MOBILE_TILT_MAX_Y,
+  }
+}
+
+function sampleIntroTiltCue(elapsed) {
+  const clampedElapsed = Math.max(0, Math.min(MOBILE_TILT_CUE_MS, elapsed))
+  const endIndex = MOBILE_TILT_CUE_KEYFRAMES.findIndex(
+    (keyframe) => keyframe.at >= clampedElapsed,
+  )
+  const next = MOBILE_TILT_CUE_KEYFRAMES[Math.max(0, endIndex)]
+  const previous = MOBILE_TILT_CUE_KEYFRAMES[Math.max(0, endIndex - 1)]
+  const span = Math.max(1, next.at - previous.at)
+  const progress = (clampedElapsed - previous.at) / span
+  const eased = 0.5 - Math.cos(Math.PI * progress) / 2
+
+  return {
+    x: previous.x + (next.x - previous.x) * eased,
+    y: previous.y + (next.y - previous.y) * eased,
+    complete: clampedElapsed >= MOBILE_TILT_CUE_MS,
+  }
 }
 
 function screenAngle() {
@@ -113,9 +148,11 @@ export default function HeroFlipGallery({
   const flipRef = useRef(null)
   const flippingRef = useRef(false)
   const flipStartFrameRef = useRef(0)
-  const flipSettleFrameRef = useRef(0)
+  const flipRotationRef = useRef(0)
+  const visibleFaceRef = useRef('front')
   const autoplayRef = useRef(null)
   const touchStartRef = useRef(null)
+  const touchBoundsRef = useRef(null)
   const orientationRef = useRef({ x: 0, y: 0, available: false })
   const motionKicksRef = useRef(new Set())
   const heroPointerRef = useRef({ nx: 0, ny: 0, influence: 0, touching: false })
@@ -125,14 +162,21 @@ export default function HeroFlipGallery({
   const introTiltCueRef = useRef({
     active: false,
     played: false,
+    startedAt: 0,
     x: 0,
     y: 0,
-    timers: [],
   })
 
   const [index, setIndex] = useState(0)
+  const [frontIndex, setFrontIndex] = useState(0)
   const [backIndex, setBackIndex] = useState(1)
   const [reducedMotion, setReducedMotion] = useState(false)
+
+  const cancelIntroTiltCue = useCallback(() => {
+    const cue = introTiltCueRef.current
+    cue.active = false
+    motionKicksRef.current.forEach((kick) => kick())
+  }, [])
 
   const requestOrientationAccess = useCallback(() => {
     if (
@@ -175,6 +219,7 @@ export default function HeroFlipGallery({
           (axes.y - orientationBaselineRef.current.y) / ORIENTATION_RANGE_DEG,
         )
         orientationRef.current.available = true
+        if (introTiltCueRef.current.active) cancelIntroTiltCue()
         motionKicksRef.current.forEach((kick) => kick())
       }
 
@@ -198,7 +243,7 @@ export default function HeroFlipGallery({
     } else {
       enable('granted')
     }
-  }, [reducedMotion])
+  }, [cancelIntroTiltCue, reducedMotion])
 
   useEffect(() => {
     return () => {
@@ -245,22 +290,15 @@ export default function HeroFlipGallery({
     }, AUTOPLAY_MS)
   }, [count])
 
-  const cancelIntroTiltCue = useCallback(() => {
-    const cue = introTiltCueRef.current
-    cue.timers.forEach((timer) => window.clearTimeout(timer))
-    cue.timers = []
-    cue.active = false
-    cue.x = 0
-    cue.y = 0
-    motionKicksRef.current.forEach((kick) => kick())
-  }, [])
-
   const flipForwardRef = useRef(null)
 
   const animateFlip = useCallback(
     (targetIndex, rotation) => {
       flippingRef.current = true
-      setBackIndex(targetIndex)
+      const nextFace = visibleFaceRef.current === 'front' ? 'back' : 'front'
+      const targetRotation = flipRotationRef.current + rotation
+      if (nextFace === 'front') setFrontIndex(targetIndex)
+      else setBackIndex(targetIndex)
 
       // Let React commit the next hidden face before the 3D transform starts.
       flipStartFrameRef.current = requestAnimationFrame(() => {
@@ -272,22 +310,17 @@ export default function HeroFlipGallery({
         }
 
         gsap.to(flipEl, {
-          rotateY: rotation,
+          rotateY: targetRotation,
+          force3D: true,
           duration: FLIP_DURATION,
           ease: 'power2.inOut',
           onComplete: () => {
-            // Keep the visible back face unchanged until the card resets.
+            flipRotationRef.current = targetRotation
+            visibleFaceRef.current = nextFace
             setIndex(targetIndex)
-            flipSettleFrameRef.current = requestAnimationFrame(() => {
-              flipSettleFrameRef.current = 0
-              if (!flipRef.current) {
-                flippingRef.current = false
-                return
-              }
-              gsap.set(flipRef.current, { rotateY: 0 })
-              setBackIndex(wrap(targetIndex + 1))
-              flippingRef.current = false
-            })
+            if (nextFace === 'front') setBackIndex(wrap(targetIndex + 1))
+            else setFrontIndex(wrap(targetIndex + 1))
+            flippingRef.current = false
           },
         })
       })
@@ -301,7 +334,13 @@ export default function HeroFlipGallery({
 
     if (reducedMotion) {
       setIndex(next)
-      setBackIndex(wrap(next + 1))
+      if (visibleFaceRef.current === 'front') {
+        setFrontIndex(next)
+        setBackIndex(wrap(next + 1))
+      } else {
+        setBackIndex(next)
+        setFrontIndex(wrap(next + 1))
+      }
       return
     }
 
@@ -314,7 +353,13 @@ export default function HeroFlipGallery({
 
     if (reducedMotion) {
       setIndex(prev)
-      setBackIndex(wrap(prev + 1))
+      if (visibleFaceRef.current === 'front') {
+        setFrontIndex(prev)
+        setBackIndex(wrap(prev + 1))
+      } else {
+        setBackIndex(prev)
+        setFrontIndex(wrap(prev + 1))
+      }
       return
     }
 
@@ -335,9 +380,6 @@ export default function HeroFlipGallery({
       if (flipStartFrameRef.current) {
         cancelAnimationFrame(flipStartFrameRef.current)
       }
-      if (flipSettleFrameRef.current) {
-        cancelAnimationFrame(flipSettleFrameRef.current)
-      }
       if (flipRef.current) gsap.killTweensOf(flipRef.current)
     }
   }, [])
@@ -348,6 +390,7 @@ export default function HeroFlipGallery({
     const pointerTilt = canTilt()
     const touchTilt = !pointerTilt && canUseTouchTilt()
     const orientationTilt = !pointerTilt && canUseOrientation()
+    const mobileTilt = window.matchMedia('(max-width: 767px)').matches
     if (!stage || !tiltEl || (!pointerTilt && !touchTilt && !orientationTilt)) return
 
     const pointerTarget = { x: 0, y: 0 }
@@ -359,38 +402,72 @@ export default function HeroFlipGallery({
       if (!interactionRef.current) {
         current.x = 0
         current.y = 0
-        tiltEl.style.transform = 'rotateX(0deg) rotateY(0deg)'
+        tiltEl.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1)'
         raf = 0
         return
       }
       const orientation = orientationRef.current
       const touch = heroPointerRef.current
+      const cue = introTiltCueRef.current
+      if (cue.active) {
+        const cueSample = sampleIntroTiltCue(performance.now() - cue.startedAt)
+        cue.x = cueSample.x
+        cue.y = cueSample.y
+        cue.active = !cueSample.complete
+      }
       let targetX = 0
       let targetY = 0
 
       if (touchTilt && touch.touching && !flippingRef.current) {
-        targetX = -touch.ny * TOUCH_TILT_MAX_X
-        targetY = touch.nx * TOUCH_TILT_MAX_Y
+        const touchTiltTarget = mobileTiltFromNormalizedInput(touch.nx, touch.ny)
+        targetX = touchTiltTarget.x
+        targetY = touchTiltTarget.y
       } else if (orientationTilt && orientation.available) {
-        targetX = -orientation.y * MOBILE_TILT_MAX_X
-        targetY = orientation.x * MOBILE_TILT_MAX_Y
-      } else if (introTiltCueRef.current.active) {
-        targetX = introTiltCueRef.current.x
-        targetY = introTiltCueRef.current.y
+        const orientationTiltTarget = mobileTiltFromNormalizedInput(
+          -orientation.x,
+          -orientation.y,
+        )
+        targetX = orientationTiltTarget.x
+        targetY = orientationTiltTarget.y
+      } else if (cue.active) {
+        targetX = cue.x
+        targetY = cue.y
       } else if (pointerTilt) {
         targetX = pointerTarget.x
         targetY = pointerTarget.y
       } else if (orientationTilt) {
-        targetX = -orientation.y * MOBILE_TILT_MAX_X
-        targetY = orientation.x * MOBILE_TILT_MAX_Y
+        const orientationTiltTarget = mobileTiltFromNormalizedInput(
+          -orientation.x,
+          -orientation.y,
+        )
+        targetX = orientationTiltTarget.x
+        targetY = orientationTiltTarget.y
       }
-      current.x += (targetX - current.x) * TILT_LERP
-      current.y += (targetY - current.y) * TILT_LERP
-      tiltEl.style.transform = `rotateX(${current.x}deg) rotateY(${current.y}deg)`
+      const tiltLerp = cue.active
+        ? MOBILE_TILT_CUE_LERP
+        : TILT_LERP
+      current.x += (targetX - current.x) * tiltLerp
+      current.y += (targetY - current.y) * tiltLerp
+      const tiltStrength = mobileTilt
+        ? Math.min(
+            1,
+            Math.max(
+              Math.abs(current.x) / MOBILE_TILT_MAX_X,
+              Math.abs(current.y) / MOBILE_TILT_MAX_Y,
+            ),
+          )
+        : 0
+      const scaleProgress = Math.max(
+        0,
+        (tiltStrength - MOBILE_TILT_SCALE_DEAD_ZONE) /
+          (1 - MOBILE_TILT_SCALE_DEAD_ZONE),
+      )
+      const scale = 1 + (MOBILE_TILT_MAX_SCALE - 1) * scaleProgress
+      tiltEl.style.transform = `rotateX(${current.x}deg) rotateY(${current.y}deg) scale(${scale})`
       const settled =
         Math.abs(targetX - current.x) < 0.01 &&
         Math.abs(targetY - current.y) < 0.01
-      if (!settled && running) raf = requestAnimationFrame(apply)
+      if ((cue.active || !settled) && running) raf = requestAnimationFrame(apply)
       else raf = 0
     }
 
@@ -459,23 +536,10 @@ export default function HeroFlipGallery({
 
     cue.played = true
     cue.active = true
-    cue.x = -0.9
-    cue.y = 1.5
+    cue.startedAt = performance.now()
+    cue.x = 0
+    cue.y = 0
     motionKicksRef.current.forEach((kick) => kick())
-
-    const setCue = (delay, x, y, active = true) =>
-      window.setTimeout(() => {
-        cue.x = x
-        cue.y = y
-        cue.active = active
-        motionKicksRef.current.forEach((kick) => kick())
-      }, delay)
-
-    cue.timers = [
-      setCue(260, 0.45, -0.75),
-      setCue(520, 0, 0),
-      setCue(MOBILE_TILT_CUE_MS, 0, 0, false),
-    ]
 
     return cancelIntroTiltCue
   }, [cancelIntroTiltCue, interactionReady, reducedMotion])
@@ -497,7 +561,7 @@ export default function HeroFlipGallery({
 
   const updateTouchTilt = (touch) => {
     if (!touch || !canUseTouchTilt() || flippingRef.current) return
-    const rect = stageRef.current?.getBoundingClientRect()
+    const rect = touchBoundsRef.current ?? stageRef.current?.getBoundingClientRect()
     if (!rect) return
     const halfW = Math.max(rect.width * 0.5, 1)
     const halfH = Math.max(rect.height * 0.5, 1)
@@ -516,6 +580,7 @@ export default function HeroFlipGallery({
     if (!interactionRef.current) return
     const touch = e.touches[0]
     cancelIntroTiltCue()
+    touchBoundsRef.current = stageRef.current?.getBoundingClientRect() ?? null
     touchStartRef.current = touch
       ? { x: touch.clientX, y: touch.clientY }
       : null
@@ -533,6 +598,7 @@ export default function HeroFlipGallery({
     releaseTouchTilt()
     requestOrientationAccess()
     const start = touchStartRef.current
+    touchBoundsRef.current = null
     if (start == null) return
     const endTouch = e.changedTouches[0]
     touchStartRef.current = null
@@ -557,16 +623,17 @@ export default function HeroFlipGallery({
 
   const onTouchCancel = () => {
     touchStartRef.current = null
+    touchBoundsRef.current = null
     releaseTouchTilt()
   }
 
-  const front = images[index]
+  const front = images[frontIndex]
   const back = images[backIndex]
 
   return (
     <div
       ref={stageRef}
-      className="hero-flip-stage relative w-full aspect-[4/3] [perspective:800px] cursor-pointer select-none"
+      className="hero-flip-stage relative w-full aspect-[4/3] [perspective:725px] md:[perspective:800px] cursor-pointer select-none"
       onClick={onClick}
       onPointerDown={onPointerDown}
       onTouchStart={onTouchStart}
@@ -587,7 +654,7 @@ export default function HeroFlipGallery({
       >
         <div
           ref={flipRef}
-          className="relative h-full w-full"
+          className="relative h-full w-full will-change-transform"
           style={{
             transformStyle: 'preserve-3d',
             WebkitTransformStyle: 'preserve-3d',
