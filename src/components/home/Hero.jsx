@@ -94,6 +94,7 @@ export default function Hero() {
           <HeroFlipGallery
             images={heroImages}
             interactionEnabledRef={interactionEnabledRef}
+            interactionReady={interactionReady}
           />
         </div>
 

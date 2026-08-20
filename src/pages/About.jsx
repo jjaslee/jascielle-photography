@@ -17,8 +17,8 @@ const SLAT_COUNT = 8
 
 const PORTRAITS = [
   {
-    src: '/images/about/IMG_3898.jpg',
-    alt: 'Jasmine C. Lee holding her graduation cap at Sather Gate',
+    src: '/images/about/IMG_3019.jpg',
+    alt: 'Jasmine C. Lee at Sather Gate, UC Berkeley graduation',
   },
   {
     src: '/images/about/about-me-goals.jpg',
@@ -42,6 +42,8 @@ function AboutReveal({ children, className = '', delay = 0, lift = false }) {
   )
 }
 
+const AUTO_MS = 5000
+
 function AboutPortrait({ blindStyle }) {
   const [index, setIndex] = useState(0)
   const [fineHover, setFineHover] = useState(false)
@@ -52,6 +54,14 @@ function AboutPortrait({ blindStyle }) {
     sync()
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = window.setInterval(() => {
+      setIndex((current) => 1 - current)
+    }, AUTO_MS)
+    return () => window.clearInterval(id)
   }, [])
 
   const toggle = () => setIndex((current) => 1 - current)
@@ -93,6 +103,39 @@ function slatStyle(blindProgress, slatIndex) {
   if (blindProgress <= 0) return undefined
   const p = rowBlindProgress(blindProgress, slatIndex, false, SLAT_COUNT)
   return faceStyleFromRowProgress(p)
+}
+
+function AboutTalkCta() {
+  const [playing, setPlaying] = useState(false)
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const INTERVAL = 3500
+    const HOLD = 700
+    let holdId = 0
+    const play = () => {
+      setPlaying(true)
+      holdId = window.setTimeout(() => setPlaying(false), HOLD)
+    }
+    const id = window.setInterval(play, INTERVAL)
+    return () => {
+      window.clearInterval(id)
+      window.clearTimeout(holdId)
+    }
+  }, [])
+
+  return (
+    <BlindExitLink
+      to="/book"
+      aria-label="Let's talk"
+      className={`featured-cta-link font-mono font-light text-[13px] md:text-[14px] tracking-[0.08em] uppercase whitespace-nowrap${
+        playing ? ' is-playing' : ''
+      }`}
+    >
+      <BarrelRollLabel text="Let's talk" />{' '}
+      <span className="featured-cta-arrow">→</span>
+    </BlindExitLink>
+  )
 }
 
 export default function About() {
@@ -206,14 +249,19 @@ export default function About() {
 
           <AboutReveal delay={400} className="mt-12 md:mt-16">
             <div className="origin-top will-change-transform" style={s(7)}>
-              <BlindExitLink
-                to="/book"
-                aria-label="Let's talk"
-                className="featured-cta-link font-mono font-light text-[13px] md:text-[14px] tracking-[0.08em] uppercase whitespace-nowrap"
-              >
-                <BarrelRollLabel text="Let's talk" />{' '}
-                <span className="featured-cta-arrow">→</span>
-              </BlindExitLink>
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-10 md:gap-14">
+                <BlindExitLink
+                  to="/work"
+                  aria-label="View work"
+                  className="featured-cta-link font-mono font-light text-[13px] md:text-[14px] tracking-[0.08em] uppercase whitespace-nowrap text-ink/45"
+                >
+                  <span className="featured-cta-arrow featured-cta-arrow--previous inline-block">
+                    ←
+                  </span>{' '}
+                  <BarrelRollLabel text="View work" />
+                </BlindExitLink>
+                <AboutTalkCta />
+              </div>
             </div>
           </AboutReveal>
         </div>

@@ -17,6 +17,7 @@ const MOBILE_TILT_MAX_X = 3.5
 const MOBILE_TILT_MAX_Y = 5
 const TOUCH_TILT_MAX_X = 1.5
 const TOUCH_TILT_MAX_Y = 2
+const MOBILE_TILT_CUE_MS = 780
 
 function canTilt() {
   return (
@@ -101,7 +102,11 @@ function HeroSlide({
   )
 }
 
-export default function HeroFlipGallery({ images, interactionEnabledRef }) {
+export default function HeroFlipGallery({
+  images,
+  interactionEnabledRef,
+  interactionReady = true,
+}) {
   const interactionRef = interactionEnabledRef ?? { current: true }
   const stageRef = useRef(null)
   const tiltRef = useRef(null)
@@ -117,6 +122,13 @@ export default function HeroFlipGallery({ images, interactionEnabledRef }) {
   const orientationBaselineRef = useRef(null)
   const orientationPermissionRef = useRef('idle')
   const orientationCleanupRef = useRef(null)
+  const introTiltCueRef = useRef({
+    active: false,
+    played: false,
+    x: 0,
+    y: 0,
+    timers: [],
+  })
 
   const [index, setIndex] = useState(0)
   const [backIndex, setBackIndex] = useState(1)
@@ -233,6 +245,16 @@ export default function HeroFlipGallery({ images, interactionEnabledRef }) {
     }, AUTOPLAY_MS)
   }, [count])
 
+  const cancelIntroTiltCue = useCallback(() => {
+    const cue = introTiltCueRef.current
+    cue.timers.forEach((timer) => window.clearTimeout(timer))
+    cue.timers = []
+    cue.active = false
+    cue.x = 0
+    cue.y = 0
+    motionKicksRef.current.forEach((kick) => kick())
+  }, [])
+
   const flipForwardRef = useRef(null)
 
   const animateFlip = useCallback(
@@ -346,12 +368,18 @@ export default function HeroFlipGallery({ images, interactionEnabledRef }) {
       let targetX = 0
       let targetY = 0
 
-      if (pointerTilt) {
-        targetX = pointerTarget.x
-        targetY = pointerTarget.y
-      } else if (touchTilt && touch.touching && !flippingRef.current) {
+      if (touchTilt && touch.touching && !flippingRef.current) {
         targetX = -touch.ny * TOUCH_TILT_MAX_X
         targetY = touch.nx * TOUCH_TILT_MAX_Y
+      } else if (orientationTilt && orientation.available) {
+        targetX = -orientation.y * MOBILE_TILT_MAX_X
+        targetY = orientation.x * MOBILE_TILT_MAX_Y
+      } else if (introTiltCueRef.current.active) {
+        targetX = introTiltCueRef.current.x
+        targetY = introTiltCueRef.current.y
+      } else if (pointerTilt) {
+        targetX = pointerTarget.x
+        targetY = pointerTarget.y
       } else if (orientationTilt) {
         targetX = -orientation.y * MOBILE_TILT_MAX_X
         targetY = orientation.x * MOBILE_TILT_MAX_Y
@@ -373,6 +401,7 @@ export default function HeroFlipGallery({ images, interactionEnabledRef }) {
 
     const onMove = (e) => {
       if (!interactionRef.current) return
+      if (introTiltCueRef.current.active) cancelIntroTiltCue()
       const rect = stage.getBoundingClientRect()
       const pointer = computeHeroPointer(e.clientX, e.clientY, rect)
       heroPointerRef.current = pointer
@@ -401,7 +430,7 @@ export default function HeroFlipGallery({ images, interactionEnabledRef }) {
       window.addEventListener('mousemove', onMove, { passive: true })
       document.documentElement.addEventListener('mouseleave', onLeave)
     }
-    if (touchTilt || orientationTilt) motionKicksRef.current.add(kick)
+    motionKicksRef.current.add(kick)
 
     return () => {
       running = false
@@ -410,12 +439,50 @@ export default function HeroFlipGallery({ images, interactionEnabledRef }) {
         window.removeEventListener('mousemove', onMove)
         document.documentElement.removeEventListener('mouseleave', onLeave)
       }
-      if (touchTilt || orientationTilt) motionKicksRef.current.delete(kick)
+      motionKicksRef.current.delete(kick)
     }
-  }, [])
+  }, [cancelIntroTiltCue])
+
+  useEffect(() => {
+    const cue = introTiltCueRef.current
+    const isMobileViewport = window.matchMedia('(max-width: 767px)').matches
+
+    if (
+      !interactionReady ||
+      cue.played ||
+      reducedMotion ||
+      prefersReducedMotion() ||
+      !isMobileViewport
+    ) {
+      return undefined
+    }
+
+    cue.played = true
+    cue.active = true
+    cue.x = -0.9
+    cue.y = 1.5
+    motionKicksRef.current.forEach((kick) => kick())
+
+    const setCue = (delay, x, y, active = true) =>
+      window.setTimeout(() => {
+        cue.x = x
+        cue.y = y
+        cue.active = active
+        motionKicksRef.current.forEach((kick) => kick())
+      }, delay)
+
+    cue.timers = [
+      setCue(260, 0.45, -0.75),
+      setCue(520, 0, 0),
+      setCue(MOBILE_TILT_CUE_MS, 0, 0, false),
+    ]
+
+    return cancelIntroTiltCue
+  }, [cancelIntroTiltCue, interactionReady, reducedMotion])
 
   const onPointerDown = () => {
     if (!interactionRef.current) return
+    cancelIntroTiltCue()
     resetAutoplay()
   }
 
@@ -448,7 +515,10 @@ export default function HeroFlipGallery({ images, interactionEnabledRef }) {
   const onTouchStart = (e) => {
     if (!interactionRef.current) return
     const touch = e.touches[0]
-    touchStartRef.current = touch?.clientX ?? null
+    cancelIntroTiltCue()
+    touchStartRef.current = touch
+      ? { x: touch.clientX, y: touch.clientY }
+      : null
     updateTouchTilt(touch)
     resetAutoplay()
   }
@@ -464,17 +534,24 @@ export default function HeroFlipGallery({ images, interactionEnabledRef }) {
     requestOrientationAccess()
     const start = touchStartRef.current
     if (start == null) return
-    const end = e.changedTouches[0]?.clientX ?? start
-    const delta = end - start
+    const endTouch = e.changedTouches[0]
     touchStartRef.current = null
-    if (Math.abs(delta) < 40) {
+    if (!endTouch) return
+
+    const deltaX = endTouch.clientX - start.x
+    const deltaY = endTouch.clientY - start.y
+    if (Math.abs(deltaY) > 12 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      return
+    }
+
+    if (Math.abs(deltaX) < 40) {
       const rect = e.currentTarget.getBoundingClientRect()
-      const x = end - rect.left
+      const x = endTouch.clientX - rect.left
       if (x < rect.width / 2) flipBackward()
       else flipForward()
       return
     }
-    if (delta < 0) flipForward()
+    if (deltaX < 0) flipForward()
     else flipBackward()
   }
 

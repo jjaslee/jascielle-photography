@@ -21,6 +21,13 @@
     "height": 1065
   },
   {
+    "src": "/images/places/IMG_2504.jpg",
+    "alt": "Busy nighttime street with buses, pedestrians, and green neon signs.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "night"
+  },
+  {
     "src": "/images/places/IMG_9363.jpg",
     "alt": "Miniature tram lit at night, tilt-shift",
     "theme": "night",
@@ -56,6 +63,13 @@
     "height": 1065
   },
   {
+    "src": "/images/places/IMG_5676.jpg",
+    "alt": "Red, blue, and white fireworks bursting in a dark sky.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "night"
+  },
+  {
     "src": "/images/places/IMG_0435.jpg",
     "alt": "7-Eleven and game centre signs at night",
     "theme": "night",
@@ -82,6 +96,20 @@
     "theme": "night",
     "width": 1600,
     "height": 1065
+  },
+  {
+    "src": "/images/places/IMG_5682.jpg",
+    "alt": "Empty industrial street lit by lamps beneath a cloudy night sky.",
+    "width": 2200,
+    "height": 1475,
+    "theme": "night"
+  },
+  {
+    "src": "/images/places/IMG_5056.jpg",
+    "alt": "Nighttime aerial view of parked cars and illuminated streets.",
+    "width": 1467,
+    "height": 2200,
+    "theme": "night"
   },
   {
     "src": "/images/places/IMG_4171.jpg",
@@ -154,6 +182,20 @@
     "height": 1065
   },
   {
+    "src": "/images/places/IMG_5187.jpg",
+    "alt": "Sailboat moored at a dock beneath a cloudy sky.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "water"
+  },
+  {
+    "src": "/images/places/IMG_5185.jpg",
+    "alt": "Sunbeams breaking through clouds above a bay and floating dock.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "water"
+  },
+  {
     "src": "/images/places/IMG_9347.jpg",
     "alt": "Stilt houses and boats along a hillside waterfront",
     "theme": "water",
@@ -194,6 +236,13 @@
     "theme": "water",
     "width": 1600,
     "height": 1065
+  },
+  {
+    "src": "/images/places/IMG_5713.jpg",
+    "alt": "Concrete bridge spanning calm water between grassy banks.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "water"
   },
   {
     "src": "/images/places/IMG_3827.jpg",
@@ -247,6 +296,13 @@
     "theme": "water"
   },
   {
+    "src": "/images/places/IMG_5781.jpg",
+    "alt": "Lighthouse and coastal houses on a bluff with seabirds flying overhead.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "water"
+  },
+  {
     "src": "/images/places/IMG_8908.jpg",
     "alt": "Traditional garden with bonsai trees and high-rises",
     "theme": "green",
@@ -267,6 +323,14 @@
     "habitat": true,
     "width": 1600,
     "height": 1067
+  },
+  {
+    "src": "/images/places/IMG_5455.jpg",
+    "alt": "Horses grazing across a meadow below steep green mountains.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "green",
+    "habitat": true
   },
   {
     "src": "/images/places/IMG_9437.jpg",
@@ -311,11 +375,25 @@
     "height": 990
   },
   {
+    "src": "/images/places/IMG_4030.jpg",
+    "alt": "Yellow passenger boat moored beside a tree-lined shore.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "water"
+  },
+  {
     "src": "/images/places/IMG_9424.jpg",
     "alt": "Waterfall over dark rock",
     "theme": "green",
     "width": 1065,
     "height": 1600
+  },
+  {
+    "src": "/images/places/IMG_5940.jpg",
+    "alt": "Small waterfall spilling over mossy rocks into a shallow pool.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "water"
   },
   {
     "src": "/images/places/IMG_2396.jpg",
@@ -361,6 +439,13 @@
     "height": 1045
   },
   {
+    "src": "/images/places/IMG_4508.jpg",
+    "alt": "Spotted deer standing among moss-covered stone lanterns.",
+    "width": 1467,
+    "height": 2200,
+    "theme": "wildlife"
+  },
+  {
     "src": "/images/places/IMG_4109.jpg",
     "alt": "Two rhinoceroses in enclosure",
     "theme": "wildlife",
@@ -382,11 +467,68 @@
     "height": 1065
   },
   {
+    "src": "/images/places/IMG_1436.jpg",
+    "alt": "Brown butterfly resting on glossy green leaves.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "wildlife"
+  },
+  {
+    "src": "/images/places/IMG_5421.jpg",
+    "alt": "Red-crested bird perched among twisting branches and green fruit.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "wildlife"
+  },
+  {
+    "src": "/images/places/IMG_3131.jpg",
+    "alt": "Male mallard standing on a rock beside a sunlit pond.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "wildlife"
+  },
+  {
+    "src": "/images/places/IMG_5904.jpg",
+    "alt": "Female mallard standing among branches in shallow water.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "wildlife"
+  },
+  {
+    "src": "/images/places/IMG_5911.jpg",
+    "alt": "Female mallard resting in dark reflective water among thin branches.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "wildlife"
+  },
+  {
+    "src": "/images/places/IMG_5804.jpg",
+    "alt": "Two gulls standing on dark rocks above breaking surf.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "wildlife"
+  },
+  {
+    "src": "/images/places/IMG_5805.jpg",
+    "alt": "Two gulls on a coastal rock, one stretching its wings.",
+    "width": 1467,
+    "height": 2200,
+    "theme": "wildlife"
+  },
+  {
     "src": "/images/places/IMG_4086.jpg",
     "alt": "Birds gathered at the water",
     "theme": "water",
     "habitat": true,
     "width": 1600,
     "height": 1065
+  },
+  {
+    "src": "/images/places/IMG_5769.jpg",
+    "alt": "Flock of seabirds flying above a long sandy beach and ocean.",
+    "width": 1467,
+    "height": 2200,
+    "theme": "water",
+    "habitat": true
   }
 ]

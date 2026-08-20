@@ -1,29 +1,5 @@
 [
   {
-    "src": "/images/portraits/IMG_4262.jpg",
-    "alt": "Grad portrait on campus seal",
-    "session": "grad",
-    "theme": "moody",
-    "width": 1066,
-    "height": 1600
-  },
-  {
-    "src": "/images/portraits/IMG_3998.jpg",
-    "alt": "Grad portrait on campus plaza",
-    "session": "grad",
-    "theme": "moody",
-    "width": 1028,
-    "height": 1600
-  },
-  {
-    "src": "/images/portraits/IMG_4069.jpg",
-    "alt": "Golden hour grad portrait",
-    "session": "grad",
-    "theme": "moody",
-    "width": 1066,
-    "height": 1600
-  },
-  {
     "src": "/images/portraits/IMG_4161.jpg",
     "alt": "Grad portrait with Campanile, UC Berkeley",
     "session": "grad",
@@ -45,6 +21,14 @@
     "session": "grad",
     "theme": "bright",
     "width": 1065,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_4262.jpg",
+    "alt": "Grad portrait on campus seal",
+    "session": "grad",
+    "theme": "moody",
+    "width": 1066,
     "height": 1600
   },
   {
@@ -80,11 +64,27 @@
     "height": 1600
   },
   {
+    "src": "/images/portraits/IMG_3998.jpg",
+    "alt": "Grad portrait on campus plaza",
+    "session": "grad",
+    "theme": "moody",
+    "width": 1028,
+    "height": 1600
+  },
+  {
     "src": "/images/portraits/IMG_3853.jpg",
     "alt": "Graduate in cap and gown on campus",
     "session": "grad",
     "theme": "bright",
     "width": 1065,
+    "height": 1600
+  },
+  {
+    "src": "/images/portraits/IMG_4069.jpg",
+    "alt": "Golden hour grad portrait",
+    "session": "grad",
+    "theme": "moody",
+    "width": 1066,
     "height": 1600
   }
 ]

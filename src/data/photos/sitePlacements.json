@@ -2,25 +2,35 @@
   "workPreviews": {
     "people": [
       "/images/portraits/IMG_4069.jpg",
-      "/images/portraits/IMG_3998.jpg",
       "/images/events/IMG_3619.jpg",
-      "/images/portraits/IMG_4161.jpg",
-      "/images/events/IMG_3707.jpg"
+      "/images/portraits/IMG_2336.jpg",
+      "/images/events/IMG_3560.jpg",
+      "/images/portraits/IMG_2827.jpg",
+      "/images/events/IMG_3696.jpg"
     ],
     "places": [
       "/images/places/IMG_4171.jpg",
-      "/images/places/IMG_3535.jpg",
-      "/images/places/IMG_1925.jpg",
-      "/images/places/IMG_3134.jpg"
+      "/images/places/IMG_6002.jpg",
+      "/images/places/IMG_1782.jpg",
+      "/images/places/IMG_0346.jpg",
+      "/images/places/IMG_2396.jpg",
+      "/images/places/IMG_5676.jpg"
     ],
     "wildlife": [
       "/images/places/IMG_4139.jpg",
+      "/images/places/IMG_4493.jpg",
       "/images/places/IMG_4021.jpg",
-      "/images/places/IMG_4020.jpg",
-      "/images/places/IMG_4109.jpg"
+      "/images/places/IMG_5769.jpg",
+      "/images/places/IMG_1436.jpg",
+      "/images/places/IMG_5455.jpg"
     ],
-    "objects": [],
-    "spaces": []
+    "objects": [
+      "/images/objects/IMG_3469.jpg",
+      "/images/objects/IMG_5430.jpg"
+    ],
+    "spaces": [
+      "/images/places/IMG_9197.jpg"
+    ]
   },
   "categoryCovers": {
     "portraits": "/images/portraits/IMG_4069.jpg",

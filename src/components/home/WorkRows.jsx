@@ -415,7 +415,7 @@ export default function WorkRows({ categories = homeWorkCategories }) {
                   }}
                 >
                   <span
-                    className="work-row-index col-start-1 row-start-1 self-center font-mono font-light text-[11px] md:text-[12px] tracking-[0.14em] uppercase text-ink leading-none opacity-45 will-change-transform group-hover:translate-x-2.5 group-hover:opacity-80 group-focus-visible:translate-x-2.5 group-focus-visible:opacity-80"
+                    className="work-row-index col-start-1 row-start-1 self-center font-mono font-light text-[11px] md:text-[12px] tracking-[0.14em] uppercase text-ink leading-none opacity-55 dark:opacity-45 will-change-transform group-hover:translate-x-2.5 group-hover:opacity-80 group-focus-visible:translate-x-2.5 group-focus-visible:opacity-80"
                     aria-hidden="true"
                   >
                     {String(index + 1).padStart(2, '0')}

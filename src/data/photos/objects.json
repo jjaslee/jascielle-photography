@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "src": "/images/objects/IMG_3469.jpg",
+    "alt": "Pink lotus flower surrounded by broad green leaves on a pond.",
+    "width": 2200,
+    "height": 1467,
+    "section": "still-life"
+  },
+  {
+    "src": "/images/objects/IMG_5430.jpg",
+    "alt": "Cluster of unripe green coffee cherries on a branch.",
+    "width": 1455,
+    "height": 2200,
+    "section": "still-life"
+  }
+]

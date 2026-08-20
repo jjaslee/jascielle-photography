@@ -6,12 +6,13 @@
   /* Cool neutral editorial — not warm cream */
   --bg: 250 250 250;
   --fg: 10 10 10;
-  --muted: 90 90 90;
-  --border: 214 214 214;
-  --salience-unread: 176 176 176;
+  --muted: 78 78 78;
+  --border: 198 198 198;
+  --salience-unread: 156 156 156;
   --salience-read: 20 20 18;
-  --salience-warm: 163 112 42;
+  --salience-warm: 145 94 28;
   --salience-cool: 58 92 117;
+  --validation-error: 161 70 70;
   --aperture-blade: 8 8 8;
   --chrome-rgb: 250, 250, 250;
   --chrome-invert-rgb: 10, 10, 10;
@@ -31,6 +32,7 @@
   --salience-read: 242 240 234;
   --salience-warm: 230 201 138;
   --salience-cool: 155 180 198;
+  --validation-error: 201 111 111;
   --aperture-blade: 8 8 8;
   --chrome-rgb: 0, 0, 0;
   --chrome-invert-rgb: 255, 255, 255;
@@ -48,6 +50,10 @@
 
 .chrome-solid-bg {
   background-color: rgb(var(--chrome-rgb));
+}
+
+.validation-error {
+  color: rgb(var(--validation-error));
 }
 
 html {
@@ -73,7 +79,7 @@ html.lenis body {
 }
 
 :root:not(.dark) .salience-stage {
-  --salience-unread: 200 198 194;
+  --salience-unread: 172 170 166;
   --salience-read: 20 20 18;
 }
 
@@ -620,6 +626,7 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
   scrollbar-width: none;
   scroll-padding-block: var(--mobile-gallery-fade);
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .work-gallery-mobile-scroller::-webkit-scrollbar {
@@ -673,6 +680,13 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
 
   .work-category-layout > footer {
     flex: none;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+  }
+
+  .work-category-layout > footer > div {
+    padding-top: 0.375rem;
+    padding-bottom: 0;
+    gap: 0.25rem;
   }
 }
 
@@ -706,6 +720,21 @@ html[data-work-lightbox-open] .work-gallery-mobile-scroller {
   transition-property: left, width;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
+}
+
+.work-category-layout.is-exiting-to-about {
+  pointer-events: none;
+  will-change: opacity;
+  animation: work-about-boundary-out 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes work-about-boundary-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1132,6 +1161,43 @@ html[data-work-category-transition='backward']::view-transition-new(work-categor
   transition: color 350ms ease;
 }
 
+.book-session-select-wrap {
+  position: relative;
+}
+
+.book-session-select {
+  -webkit-appearance: none;
+  appearance: none;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  border-radius: 0;
+  background: transparent;
+  padding-right: 2rem;
+}
+
+.book-session-select-wrap::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 1px solid rgb(var(--muted));
+  border-bottom: 1px solid rgb(var(--muted));
+  pointer-events: none;
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.book-submit-cta.featured-cta-link {
+  color: rgb(var(--salience-warm));
+}
+
+.book-submit-cta.featured-cta-link:disabled:hover,
+.book-submit-cta.featured-cta-link:disabled:focus-visible {
+  color: rgb(var(--salience-warm));
+}
+
 .featured-cta-link:hover,
 .featured-cta-link:focus-visible,
 .featured-cta-link:active,
@@ -1154,6 +1220,21 @@ html[data-work-category-transition='backward']::view-transition-new(work-categor
 .featured-cta-link:focus-visible .featured-cta-arrow--previous,
 .featured-cta-link.is-playing .featured-cta-arrow--previous {
   transform: translateX(-7px);
+}
+
+.featured-cta-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.featured-cta-link:disabled:hover,
+.featured-cta-link:disabled:focus-visible {
+  color: rgb(var(--fg) / 0.65);
+}
+
+.featured-cta-link:disabled:hover .featured-cta-arrow,
+.featured-cta-link:disabled:focus-visible .featured-cta-arrow {
+  transform: none;
 }
 
 /* Mobile CTA ref — driven imperatively */
@@ -1201,6 +1282,16 @@ html[data-work-category-transition='backward']::view-transition-new(work-categor
   filter: brightness(0.85);
   clip-path: inset(4% 4% 4% 4%);
   animation: hero-intro-photo 850ms cubic-bezier(0.22, 1, 0.36, 1) 680ms forwards;
+}
+
+@media (max-width: 767px) {
+  .hero-flip-stage::before {
+    content: '';
+    position: absolute;
+    inset: -40px;
+    z-index: 3;
+    pointer-events: auto;
+  }
 }
 
 @keyframes hero-intro-photo {

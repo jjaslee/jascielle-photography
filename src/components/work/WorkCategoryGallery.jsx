@@ -31,9 +31,8 @@ const BOUNDARY_START = 0.06
 const BOUNDARY_END = 0.94
 const WHEEL_GAIN = 0.62
 const SCROLL_LERP = 0.09
-const MOBILE_WHEEL_GAIN = 0.58
-const MOBILE_TOUCH_GAIN = 0.58
-const MOBILE_SCROLL_LERP = 0.12
+const KEYBOARD_SCROLL_RATIO = 0.2
+const ABOUT_EXIT_MS = 360
 const INITIAL_EDGE_COUNT = 12
 const SECTION_GAP = GAP
 const decodedSources = new Set()
@@ -49,6 +48,18 @@ function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
+function shouldIgnoreGalleryKey(event) {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing) {
+    return true
+  }
+  if (!(event.target instanceof Element)) return false
+  return Boolean(
+    event.target.closest(
+      'input, textarea, select, button, a, summary, [contenteditable], [role="button"], [role="link"], [role="textbox"], [role="combobox"], [role="listbox"], [role="menuitem"], [role="option"], [role="slider"], [role="spinbutton"], [role="switch"], [role="checkbox"], [role="radio"]',
+    ),
+  )
+}
+
 function useMatchMedia(query) {
   const [matches, setMatches] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia(query).matches : false,
@@ -61,6 +72,66 @@ function useMatchMedia(query) {
     return () => mq.removeEventListener('change', sync)
   }, [query])
   return matches
+}
+
+function useAboutBoundaryExit(categoryId) {
+  const navigate = useNavigate()
+  const exitRef = useRef({
+    running: false,
+    navigated: false,
+    layout: null,
+    onAnimationEnd: null,
+    timer: 0,
+  })
+
+  const clearPendingExit = useCallback(() => {
+    const exit = exitRef.current
+    window.clearTimeout(exit.timer)
+    if (exit.layout && exit.onAnimationEnd) {
+      exit.layout.removeEventListener('animationend', exit.onAnimationEnd)
+    }
+    exit.layout?.classList.remove('is-exiting-to-about')
+  }, [])
+
+  useEffect(() => clearPendingExit, [clearPendingExit])
+
+  return useCallback((nav) => {
+    if (categoryId !== 'spaces' || nav?.to !== '/about') return false
+
+    const exit = exitRef.current
+    if (exit.running) return true
+    exit.running = true
+
+    const layout = document.querySelector('.work-category-layout')
+    if (!layout || prefersReducedMotion()) {
+      exit.navigated = true
+      navigate(nav.to)
+      return true
+    }
+
+    const finish = () => {
+      if (exit.navigated) return
+      exit.navigated = true
+      window.clearTimeout(exit.timer)
+      layout.removeEventListener('animationend', exit.onAnimationEnd)
+      navigate(nav.to)
+    }
+    const onAnimationEnd = (event) => {
+      if (
+        event.target === layout &&
+        event.animationName === 'work-about-boundary-out'
+      ) {
+        finish()
+      }
+    }
+
+    exit.layout = layout
+    exit.onAnimationEnd = onAnimationEnd
+    layout.addEventListener('animationend', onAnimationEnd)
+    layout.classList.add('is-exiting-to-about')
+    exit.timer = window.setTimeout(finish, ABOUT_EXIT_MS + 100)
+    return true
+  }, [categoryId, navigate])
 }
 
 function orientationFromImage(nw, nh) {
@@ -389,7 +460,7 @@ function SubcategoryNav({ sections, activeId, onSelect, flow = false }) {
             className={`font-mono font-light text-[11px] md:text-xs tracking-[0.14em] uppercase transition-colors duration-300 ${
               activeId === section.id
                 ? 'text-ink/95'
-                : 'text-ink/45 hover:text-ink/70'
+                : 'text-ink/55 dark:text-ink/45 hover:text-ink/70'
             }`}
           >
             {section.label}
@@ -406,7 +477,12 @@ function SubcategoryNav({ sections, activeId, onSelect, flow = false }) {
   )
 }
 
-function WorkCategoryGalleryScroll({ category, reduced = false, onInspect }) {
+function WorkCategoryGalleryScroll({
+  category,
+  reduced = false,
+  onInspect,
+  onExitToAbout,
+}) {
   const location = useLocation()
   const navigate = useNavigate()
   const lenisRef = useLenisRef()
@@ -612,11 +688,33 @@ function WorkCategoryGalleryScroll({ category, reduced = false, onInspect }) {
       requestNearby(targetRef.current)
     }
 
+    const onKeyDown = (event) => {
+      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return
+      if (
+        shouldIgnoreGalleryKey(event) ||
+        categoryTransitionRef.current ||
+        document.documentElement.dataset.workCategoryTransition ||
+        document.documentElement.dataset.workLightboxOpen !== undefined
+      ) {
+        return
+      }
+      const viewportWidth = viewportRef.current?.clientWidth
+      if (!viewportWidth || maxScrollRef.current <= 0) return
+      event.preventDefault()
+      const direction = event.key === 'ArrowRight' ? 1 : -1
+      targetRef.current = clamp(
+        targetRef.current + direction * viewportWidth * KEYBOARD_SCROLL_RATIO,
+      )
+      requestNearby(targetRef.current)
+    }
+
     window.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('keydown', onKeyDown)
 
     return () => {
       cancelAnimationFrame(rafRef.current)
       window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('keydown', onKeyDown)
     }
   }, [category.sections, reduced, requestNearby])
 
@@ -634,6 +732,10 @@ function WorkCategoryGalleryScroll({ category, reduced = false, onInspect }) {
       categoryTransitionRef.current ||
       document.documentElement.dataset.workCategoryTransition
     ) {
+      return
+    }
+    if (onExitToAbout(nav)) {
+      categoryTransitionRef.current = true
       return
     }
     categoryTransitionRef.current = true
@@ -677,7 +779,7 @@ function WorkCategoryGalleryScroll({ category, reduced = false, onInspect }) {
       delete root.dataset.workCategoryTransition
       commitNavigation()
     }
-  }, [navigate])
+  }, [navigate, onExitToAbout])
 
   const fitsViewport = maxScrollRef.current <= 0
   const showPrev =
@@ -804,17 +906,13 @@ function MobileCategoryLink({ nav, direction, onNavigate }) {
   )
 }
 
-function WorkCategoryGalleryMobile({ category, onInspect }) {
+function WorkCategoryGalleryMobile({ category, onInspect, onExitToAbout }) {
   const location = useLocation()
   const navigate = useNavigate()
   const lenisRef = useLenisRef()
   const scrollerRef = useRef(null)
   const sectionRefs = useRef({})
   const categoryTransitionRef = useRef(false)
-  const scrollTargetRef = useRef(0)
-  const scrollCurrentRef = useRef(0)
-  const scrollRafRef = useRef(0)
-  const touchLastYRef = useRef(null)
   const startsAtEnd = location.state?.initialGalleryPosition === 'end'
   const firstSectionId = category.sections[0]?.id ?? null
   const lastSectionId = category.sections.at(-1)?.id ?? null
@@ -843,8 +941,6 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
       scroller.scrollTop = startsAtEnd
         ? Math.max(0, scroller.scrollHeight - scroller.clientHeight)
         : 0
-      scrollCurrentRef.current = scroller.scrollTop
-      scrollTargetRef.current = scroller.scrollTop
     }
     reset()
     const frame = requestAnimationFrame(reset)
@@ -852,99 +948,31 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
   }, [category.id, lenisRef, startsAtEnd])
 
   useEffect(() => {
-    const previousHtmlOverflow = document.documentElement.style.overflow
-    const previousBodyOverflow = document.body.style.overflow
-    document.documentElement.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-
-    return () => {
-      document.documentElement.style.overflow = previousHtmlOverflow
-      document.body.style.overflow = previousBodyOverflow
-    }
-  }, [])
-
-  useEffect(() => {
     const scroller = scrollerRef.current
     if (!scroller) return
 
-    const clamp = (value) => {
-      const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight)
-      return Math.min(Math.max(value, 0), maxScroll)
-    }
-
-    const tick = () => {
-      const cur = scrollCurrentRef.current
-      const tgt = scrollTargetRef.current
-      const next = cur + (tgt - cur) * MOBILE_SCROLL_LERP
-      if (Math.abs(tgt - cur) > 0.05) {
-        scrollCurrentRef.current = next
-        scroller.scrollTop = next
-        scrollRafRef.current = requestAnimationFrame(tick)
-      } else {
-        scrollCurrentRef.current = tgt
-        scroller.scrollTop = tgt
-        scrollRafRef.current = 0
+    const onKeyDown = (event) => {
+      if (!['ArrowUp', 'ArrowDown'].includes(event.key)) return
+      if (
+        shouldIgnoreGalleryKey(event) ||
+        categoryTransitionRef.current ||
+        document.documentElement.dataset.workCategoryTransition ||
+        document.documentElement.dataset.workLightboxOpen !== undefined
+      ) {
+        return
       }
-    }
-
-    const kick = () => {
-      if (!scrollRafRef.current) scrollRafRef.current = requestAnimationFrame(tick)
-    }
-
-    const onWheel = (event) => {
+      const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight)
+      if (maxScroll <= 0) return
       event.preventDefault()
-      const delta =
-        Math.abs(event.deltaY) >= Math.abs(event.deltaX)
-          ? event.deltaY
-          : event.deltaX
-      scrollTargetRef.current = clamp(
-        scrollTargetRef.current + delta * MOBILE_WHEEL_GAIN,
-      )
-      kick()
+      const direction = event.key === 'ArrowDown' ? 1 : -1
+      scroller.scrollBy({
+        top: direction * scroller.clientHeight * KEYBOARD_SCROLL_RATIO,
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      })
     }
 
-    const onTouchStart = (event) => {
-      touchLastYRef.current = event.touches[0]?.clientY ?? null
-    }
-
-    const onTouchMove = (event) => {
-      const y = event.touches[0]?.clientY
-      if (typeof y !== 'number' || touchLastYRef.current == null) return
-      event.preventDefault()
-      const delta = (touchLastYRef.current - y) * MOBILE_TOUCH_GAIN
-      touchLastYRef.current = y
-      scrollTargetRef.current = clamp(scrollTargetRef.current + delta)
-      kick()
-    }
-
-    const onTouchEnd = () => {
-      touchLastYRef.current = null
-    }
-
-    const onNativeScroll = () => {
-      if (scrollRafRef.current) return
-      scrollCurrentRef.current = scroller.scrollTop
-      scrollTargetRef.current = scroller.scrollTop
-    }
-
-    scroller.addEventListener('wheel', onWheel, { passive: false })
-    scroller.addEventListener('touchstart', onTouchStart, { passive: true })
-    scroller.addEventListener('touchmove', onTouchMove, { passive: false })
-    scroller.addEventListener('touchend', onTouchEnd, { passive: true })
-    scroller.addEventListener('touchcancel', onTouchEnd, { passive: true })
-    scroller.addEventListener('scroll', onNativeScroll, { passive: true })
-
-    return () => {
-      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current)
-      scrollRafRef.current = 0
-      touchLastYRef.current = null
-      scroller.removeEventListener('wheel', onWheel)
-      scroller.removeEventListener('touchstart', onTouchStart)
-      scroller.removeEventListener('touchmove', onTouchMove)
-      scroller.removeEventListener('touchend', onTouchEnd)
-      scroller.removeEventListener('touchcancel', onTouchEnd)
-      scroller.removeEventListener('scroll', onNativeScroll)
-    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [category.id])
 
   const syncActiveSection = useCallback(() => {
@@ -1005,6 +1033,10 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
     ) {
       return
     }
+    if (onExitToAbout(nav)) {
+      categoryTransitionRef.current = true
+      return
+    }
     categoryTransitionRef.current = true
 
     const transitionDirection =
@@ -1051,7 +1083,7 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
       delete root.dataset.workCategoryTransition
       commitNavigation()
     }
-  }, [navigate])
+  }, [navigate, onExitToAbout])
 
   return (
     <section
@@ -1175,7 +1207,7 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
       </div>
 
       {category.sections.length > 0 && (
-        <div className="shrink-0 py-3">
+        <div className="work-gallery-mobile-subnav shrink-0 py-1">
           <SubcategoryNav
             sections={category.sections}
             activeId={activeSectionId}
@@ -1188,7 +1220,7 @@ function WorkCategoryGalleryMobile({ category, onInspect }) {
   )
 }
 
-function WorkCategoryGalleryStatic({ category, onInspect }) {
+function WorkCategoryGalleryStatic({ category, onInspect, onExitToAbout }) {
   return (
     <section className="work-gallery-static bg-canvas text-ink min-h-screen section-pad pt-24 md:pt-28 pb-16">
       <h1 className="work-gallery-title font-display text-center text-ink mb-10 md:mb-14">
@@ -1243,15 +1275,28 @@ function WorkCategoryGalleryStatic({ category, onInspect }) {
             <BarrelRollLabel text={category.previous.label} />
           </BlindExitLink>
         )}
-        {category.next && (
-          <BlindExitLink
-            to={category.next.to}
-            className="featured-cta-link font-mono font-light text-[13px] tracking-[0.08em] uppercase"
-          >
-            <BarrelRollLabel text={category.next.label} />{' '}
-            <span className="featured-cta-arrow">→</span>
-          </BlindExitLink>
-        )}
+        {category.next &&
+          (category.id === 'spaces' && category.next.to === '/about' ? (
+            <a
+              href={category.next.to}
+              onClick={(event) => {
+                event.preventDefault()
+                onExitToAbout(category.next)
+              }}
+              className="featured-cta-link font-mono font-light text-[13px] tracking-[0.08em] uppercase"
+            >
+              <BarrelRollLabel text={category.next.label} />{' '}
+              <span className="featured-cta-arrow">→</span>
+            </a>
+          ) : (
+            <BlindExitLink
+              to={category.next.to}
+              className="featured-cta-link font-mono font-light text-[13px] tracking-[0.08em] uppercase"
+            >
+              <BarrelRollLabel text={category.next.label} />{' '}
+              <span className="featured-cta-arrow">→</span>
+            </BlindExitLink>
+          ))}
       </div>
     </section>
   )
@@ -1259,6 +1304,7 @@ function WorkCategoryGalleryStatic({ category, onInspect }) {
 
 export default function WorkCategoryGallery({ category }) {
   const isMobile = useMatchMedia('(max-width: 768px)')
+  const exitToAbout = useAboutBoundaryExit(category.id)
   const [inspectedImage, setInspectedImage] = useState(null)
   const [reduced, setReduced] = useState(() =>
     typeof window !== 'undefined' ? prefersReducedMotion() : false,
@@ -1293,6 +1339,7 @@ export default function WorkCategoryGallery({ category }) {
       <WorkCategoryGalleryMobile
         category={category}
         onInspect={inspectImage}
+        onExitToAbout={exitToAbout}
       />
     )
   } else if (!hasImages) {
@@ -1300,6 +1347,7 @@ export default function WorkCategoryGallery({ category }) {
       <WorkCategoryGalleryStatic
         category={category}
         onInspect={inspectImage}
+        onExitToAbout={exitToAbout}
       />
     )
   } else {
@@ -1308,6 +1356,7 @@ export default function WorkCategoryGallery({ category }) {
         category={category}
         reduced={reduced}
         onInspect={inspectImage}
+        onExitToAbout={exitToAbout}
       />
     )
   }
