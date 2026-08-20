@@ -32,6 +32,7 @@ const BOUNDARY_END = 0.94
 const WHEEL_GAIN = 0.62
 const SCROLL_LERP = 0.09
 const KEYBOARD_SCROLL_RATIO = 0.2
+const TOUCH_DRAG_THRESHOLD = 8
 const ABOUT_EXIT_MS = 360
 const INITIAL_EDGE_COUNT = 12
 const SECTION_GAP = GAP
@@ -494,6 +495,9 @@ function WorkCategoryGalleryScroll({
   const targetRef = useRef(0)
   const rafRef = useRef(0)
   const categoryTransitionRef = useRef(false)
+  const touchDragRef = useRef(null)
+  const suppressTouchClickRef = useRef(false)
+  const suppressTouchClickTimerRef = useRef(0)
   const initialEndPendingRef = useRef(
     location.state?.initialGalleryPosition === 'end',
   )
@@ -718,6 +722,87 @@ function WorkCategoryGalleryScroll({
     }
   }, [category.sections, reduced, requestNearby])
 
+  const handlePointerDown = useCallback((event) => {
+    if (
+      event.pointerType !== 'touch' ||
+      touchDragRef.current ||
+      categoryTransitionRef.current ||
+      document.documentElement.dataset.workCategoryTransition ||
+      document.documentElement.dataset.workLightboxOpen !== undefined ||
+      (event.target instanceof Element &&
+        event.target.closest('a, button, input, textarea, select'))
+    ) {
+      return
+    }
+
+    window.clearTimeout(suppressTouchClickTimerRef.current)
+    suppressTouchClickRef.current = false
+    targetRef.current = translateRef.current
+    touchDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startProgress: translateRef.current,
+      axis: null,
+    }
+  }, [])
+
+  const handlePointerMove = useCallback((event) => {
+    const drag = touchDragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    if (
+      categoryTransitionRef.current ||
+      document.documentElement.dataset.workCategoryTransition ||
+      document.documentElement.dataset.workLightboxOpen !== undefined
+    ) {
+      touchDragRef.current = null
+      return
+    }
+
+    const deltaX = event.clientX - drag.startX
+    const deltaY = event.clientY - drag.startY
+
+    if (!drag.axis) {
+      if (
+        Math.max(Math.abs(deltaX), Math.abs(deltaY)) <
+        TOUCH_DRAG_THRESHOLD
+      ) {
+        return
+      }
+      drag.axis = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical'
+    }
+
+    if (drag.axis !== 'horizontal') return
+
+    const next = Math.min(
+      Math.max(drag.startProgress - deltaX, 0),
+      maxScrollRef.current,
+    )
+    targetRef.current = next
+    translateRef.current = next
+    setTranslateX(next)
+    requestNearby(next)
+  }, [requestNearby])
+
+  const finishPointerDrag = useCallback((event) => {
+    const drag = touchDragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+
+    touchDragRef.current = null
+    if (event.type !== 'pointerup' || drag.axis !== 'horizontal') return
+
+    suppressTouchClickRef.current = true
+    window.clearTimeout(suppressTouchClickTimerRef.current)
+    suppressTouchClickTimerRef.current = window.setTimeout(() => {
+      suppressTouchClickRef.current = false
+    }, 400)
+  }, [])
+
+  useEffect(
+    () => () => window.clearTimeout(suppressTouchClickTimerRef.current),
+    [],
+  )
+
   const scrollToSection = useCallback((sectionId) => {
     const startX = sectionStartsRef.current[sectionId] ?? 0
     targetRef.current = Math.min(
@@ -802,6 +887,22 @@ function WorkCategoryGalleryScroll({
       <div
         ref={viewportRef}
         className="work-gallery-viewport relative flex flex-1 min-h-0 items-center overflow-visible py-2"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={finishPointerDrag}
+        onPointerCancel={finishPointerDrag}
+        onClickCapture={(event) => {
+          if (
+            !suppressTouchClickRef.current ||
+            !(event.target instanceof Element) ||
+            !event.target.closest('.work-gallery-inspectable')
+          ) {
+            return
+          }
+          suppressTouchClickRef.current = false
+          event.preventDefault()
+          event.stopPropagation()
+        }}
       >
         <div
           ref={trackRef}

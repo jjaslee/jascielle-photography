@@ -292,16 +292,19 @@ html.lenis body {
 }
 
 .work-gallery-viewport {
+  position: relative;
   isolation: isolate;
   width: calc(100vw - (2 * var(--gallery-side-safe)));
   margin-inline: var(--gallery-side-safe);
+  touch-action: pan-y;
 }
 
 .work-gallery-viewport::before,
 .work-gallery-viewport::after {
   content: '';
   position: absolute;
-  inset-block: 0;
+  top: 0;
+  bottom: 0;
   z-index: 5;
   width: calc(var(--gallery-side-safe) + var(--gallery-edge-fade));
   pointer-events: none;
