@@ -77,7 +77,7 @@ function AboutPortrait({ blindStyle }) {
         onClick={(e) => {
           if (!fineHover || e.detail === 0) toggle()
         }}
-        className="relative mx-auto block aspect-square w-[74vw] max-w-[320px] cursor-pointer overflow-hidden border-0 bg-transparent p-0 gallery-protected focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-ink/40"
+        className="relative mx-auto block aspect-square w-[74vw] max-w-[320px] cursor-default overflow-hidden border-0 bg-transparent p-0 gallery-protected focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-ink/40"
         {...protectedGalleryHandlers}
       >
         {PORTRAITS.map((photo, i) => (
