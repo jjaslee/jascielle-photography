@@ -337,6 +337,11 @@ html.lenis body {
   );
 }
 
+.work-gallery-stage.is-non-scrollable::before,
+.work-gallery-stage.is-non-scrollable::after {
+  display: none;
+}
+
 .work-gallery-img {
   flex: none;
   opacity: 0;

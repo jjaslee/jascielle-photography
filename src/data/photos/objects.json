@@ -16,5 +16,50 @@
     "section": "still-life",
     "location": "Wahiawā, Hawaiʻi",
     "year": 2026
+  },
+  {
+    "src": "/images/objects/IMG_3161.jpg",
+    "alt": "Vivid pink blossoms emerge from deep green foliage against a softly blurred, shadowed background.",
+    "width": 2200,
+    "height": 1511,
+    "section": "still-life",
+    "location": "Stow Lake, San Francisco",
+    "year": 2024
+  },
+  {
+    "src": "/images/objects/IMG_3121.jpg",
+    "alt": "White calla lilies and deep green foliage, softly lit against a dark, blurred background.",
+    "width": 2200,
+    "height": 1624,
+    "section": "still-life",
+    "location": "Stow Lake, San Francisco",
+    "year": 2024
+  },
+  {
+    "src": "/images/objects/IMG_5433.jpg",
+    "alt": "Red and green coffee beans against green background.",
+    "width": 1544,
+    "height": 2200,
+    "section": "still-life",
+    "location": "Wahiawā, Hawaiʻi",
+    "year": 2026
+  },
+  {
+    "src": "/images/objects/IMG_3046.jpg",
+    "alt": "Dandelion against Golden Gate.",
+    "width": 1467,
+    "height": 2200,
+    "section": "still-life",
+    "location": "Hawk Hill, California",
+    "year": 2026
+  },
+  {
+    "src": "/images/objects/IMG_9580.jpg",
+    "alt": "Pink flowers against a brown branch and warm leaves.",
+    "width": 2200,
+    "height": 1726,
+    "section": "still-life",
+    "location": "Berkeley Botanical Garden",
+    "year": 2025
   }
 ]

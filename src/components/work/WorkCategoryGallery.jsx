@@ -32,6 +32,7 @@ const BOUNDARY_START = 0.06
 const BOUNDARY_END = 0.94
 const WHEEL_GAIN = 0.62
 const SCROLL_LERP = 0.09
+const SCROLLABILITY_EPSILON = 1.5
 const KEYBOARD_SCROLL_RATIO = 0.2
 const TOUCH_DRAG_THRESHOLD = 8
 const TOUCH_VELOCITY_WINDOW_MS = 100
@@ -623,6 +624,8 @@ function WorkCategoryGalleryScroll({
   const requestedSourcesRef = useRef(new Set())
 
   const [translateX, setTranslateX] = useState(0)
+  const [isScrollable, setIsScrollable] = useState(true)
+  const [centerOffset, setCenterOffset] = useState(0)
   const [footerH, setFooterH] = useState(72)
   const [requestedSources, setRequestedSources] = useState(() => new Set())
   const [activeSection, setActiveSection] = useState(
@@ -660,9 +663,20 @@ function WorkCategoryGalleryScroll({
     const footer = document.querySelector('footer')
     if (footer) setFooterH(footer.offsetHeight)
 
-    const innerWidth = viewport.clientWidth
+    const innerWidth =
+      viewport.getBoundingClientRect().width || viewport.clientWidth
+    if (!innerWidth) return
+    const stageWidth =
+      trackRef.current?.getBoundingClientRect().width || trackWidth
+    const nextIsScrollable =
+      stageWidth > innerWidth + SCROLLABILITY_EPSILON
+    const nextCenterOffset = nextIsScrollable
+      ? 0
+      : (innerWidth - stageWidth) / 2
     viewportWidthRef.current = innerWidth
-    const maxScroll = Math.max(0, trackWidth - innerWidth)
+    const maxScroll = nextIsScrollable
+      ? Math.max(0, stageWidth - innerWidth)
+      : 0
     const previousMax = maxScrollRef.current
     const keepAtEnd =
       initialEndPendingRef.current ||
@@ -672,6 +686,13 @@ function WorkCategoryGalleryScroll({
 
     maxScrollRef.current = maxScroll
     sectionStartsRef.current = starts
+    setIsScrollable(nextIsScrollable)
+    setCenterOffset(nextCenterOffset)
+
+    if (!nextIsScrollable) {
+      touchDragRef.current = null
+      touchMomentumRef.current = false
+    }
 
     if (keepAtEnd) {
       targetRef.current = maxScroll
@@ -684,7 +705,7 @@ function WorkCategoryGalleryScroll({
     }
 
     if (trackRef.current) {
-      trackRef.current.style.transform = `translate3d(${-translateRef.current}px, 0, 0)`
+      trackRef.current.style.transform = `translate3d(${nextCenterOffset - translateRef.current}px, 0, 0)`
     }
     setTranslateX(translateRef.current)
     requestNearby(translateRef.current)
@@ -692,6 +713,12 @@ function WorkCategoryGalleryScroll({
 
   useLayoutEffect(() => {
     remeasure()
+    if (typeof ResizeObserver === 'undefined') return undefined
+
+    const observer = new ResizeObserver(remeasure)
+    if (viewportRef.current) observer.observe(viewportRef.current)
+    if (trackRef.current) observer.observe(trackRef.current)
+    return () => observer.disconnect()
   }, [remeasure])
 
   useEffect(() => {
@@ -821,6 +848,7 @@ function WorkCategoryGalleryScroll({
   const handlePointerDown = useCallback((event) => {
     if (
       event.pointerType !== 'touch' ||
+      maxScrollRef.current <= 0 ||
       touchDragRef.current ||
       categoryTransitionRef.current ||
       document.documentElement.dataset.workCategoryTransition ||
@@ -1007,7 +1035,7 @@ function WorkCategoryGalleryScroll({
     }
   }, [navigate, onExitToAbout])
 
-  const fitsViewport = maxScrollRef.current <= 0
+  const fitsViewport = !isScrollable
   const showPrev =
     Boolean(category.previous) && (fitsViewport || progress <= BOUNDARY_START)
   const showNext =
@@ -1045,7 +1073,11 @@ function WorkCategoryGalleryScroll({
           event.stopPropagation()
         }}
       >
-        <div className="work-gallery-stage">
+        <div
+          className={`work-gallery-stage${
+            isScrollable ? '' : ' is-non-scrollable'
+          }`}
+        >
           <div
             ref={trackRef}
             className="work-gallery-track flex flex-col will-change-transform"
@@ -1054,7 +1086,7 @@ function WorkCategoryGalleryScroll({
               paddingLeft: GAP,
               width: trackWidth,
               boxSizing: 'border-box',
-              transform: `translate3d(${-translateX}px, 0, 0)`,
+              transform: `translate3d(${centerOffset - translateX}px, 0, 0)`,
             }}
           >
             <div

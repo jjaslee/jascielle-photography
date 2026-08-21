@@ -162,6 +162,15 @@
     "year": 2024
   },
   {
+    "src": "/images/places/IMG_1682.jpg",
+    "alt": "3 old parked cars",
+    "width": 2200,
+    "height": 1491,
+    "theme": "street",
+    "location": "Chula Vista Harbor, San Diego",
+    "year": 2026
+  },
+  {
     "src": "/images/places/IMG_4013.jpg",
     "alt": "Keihan train at a station crossing",
     "theme": "street",
@@ -497,6 +506,15 @@
     "year": 2024
   },
   {
+    "src": "/images/places/IMG_3885.jpg",
+    "alt": "Bamboo forest facing the sky",
+    "width": 1506,
+    "height": 2200,
+    "theme": "green",
+    "location": "Arashiyama Bamboo Grove, Kyoto",
+    "year": 2024
+  },
+  {
     "src": "/images/places/IMG_5940.jpg",
     "alt": "Small waterfall spilling over mossy rocks into a shallow pool.",
     "width": 2200,
@@ -677,6 +695,24 @@
     "theme": "water",
     "habitat": true,
     "location": "San Gregorio State Beach, California",
+    "year": 2026
+  },
+  {
+    "src": "/images/places/IMG_1790.jpg",
+    "alt": "Man walking out of Pike Place Market",
+    "width": 1467,
+    "height": 2200,
+    "theme": "street",
+    "location": "Pike Place Market, Seattle",
+    "year": 2026
+  },
+  {
+    "src": "/images/places/IMG_1793.jpg",
+    "alt": "Ferris wheel near water.",
+    "width": 2200,
+    "height": 1467,
+    "theme": "street",
+    "location": "pike place Market, Seattle",
     "year": 2026
   }
 ]
