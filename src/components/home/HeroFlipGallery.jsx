@@ -11,6 +11,10 @@ const TILT_MAX_X = 7
 const TILT_MAX_Y = 10
 const FLIP_DURATION = 0.8
 const AUTOPLAY_MS = 8000
+const HERO_POSTER_REVEAL_MS = 850
+const HERO_HANDOFF_MS = 200
+const HERO_INTRO_CUE_SETTLE_MS = 150
+const DEFERRED_FACE_FALLBACK_MS = 600
 const TILT_LERP = 0.1
 const ORIENTATION_PARALLAX_RANGE_DEG = 25
 const ORIENTATION_TILT_RANGE_DEG = 18
@@ -142,6 +146,9 @@ function HeroSlide({
   motionKicksRef,
   interactionEnabledRef,
   heroPointerRef,
+  fetchPriority,
+  onReady,
+  onError,
 }) {
   if (image.layers) {
     return (
@@ -153,17 +160,37 @@ function HeroSlide({
         motionKicksRef={motionKicksRef}
         interactionEnabledRef={interactionEnabledRef}
         heroPointerRef={heroPointerRef}
+        fetchPriority={fetchPriority}
+        onReady={onReady}
+        onError={onError}
       />
     )
   }
 
+  const source = typeof image.src === 'string' ? { src: image.src } : image.src
+
   return (
     <div className="absolute inset-0 overflow-hidden">
       <ProtectedImage
-        src={image.src}
+        src={source.src}
+        srcSet={source.srcSet}
+        sizes={source.sizes}
+        width={source.width}
+        height={source.height}
         alt={image.alt}
         loading="eager"
         decoding="async"
+        fetchPriority={fetchPriority}
+        onLoad={async (event) => {
+          const imageElement = event.currentTarget
+          try {
+            await imageElement.decode()
+            onReady?.()
+          } catch {
+            onError?.()
+          }
+        }}
+        onError={onError}
         className="absolute inset-0 h-full w-full scale-[1.04] object-cover object-center"
       />
     </div>
@@ -173,9 +200,10 @@ function HeroSlide({
 export default function HeroFlipGallery({
   images,
   interactionEnabledRef,
-  interactionReady = true,
+  mediaRevealAllowed = true,
 }) {
-  const interactionRef = interactionEnabledRef ?? { current: true }
+  const localInteractionRef = useRef(false)
+  const interactionRef = interactionEnabledRef ?? localInteractionRef
   const stageRef = useRef(null)
   const tiltRef = useRef(null)
   const flipRef = useRef(null)
@@ -183,6 +211,8 @@ export default function HeroFlipGallery({
   const flipStartFrameRef = useRef(0)
   const flipRotationRef = useRef(0)
   const visibleFaceRef = useRef('front')
+  const animateFlipRef = useRef(null)
+  const pendingFlipRef = useRef(null)
   const autoplayRef = useRef(null)
   const touchStartRef = useRef(null)
   const touchBoundsRef = useRef(null)
@@ -206,6 +236,8 @@ export default function HeroFlipGallery({
   })
   const orientationPermissionRef = useRef('idle')
   const orientationCleanupRef = useRef(null)
+  const userInteractedRef = useRef(false)
+  const readyImagesRef = useRef(new Set())
   const introTiltCueRef = useRef({
     active: false,
     played: false,
@@ -218,12 +250,106 @@ export default function HeroFlipGallery({
   const [frontIndex, setFrontIndex] = useState(0)
   const [backIndex, setBackIndex] = useState(1)
   const [reducedMotion, setReducedMotion] = useState(false)
+  const [posterReady, setPosterReady] = useState(false)
+  const [posterRevealComplete, setPosterRevealComplete] = useState(false)
+  const [initialLayerStatus, setInitialLayerStatus] = useState('loading')
+  const [layersPrepared, setLayersPrepared] = useState(false)
+  const [handoffStarted, setHandoffStarted] = useState(false)
+  const [handoffComplete, setHandoffComplete] = useState(false)
+  const [deferredFaceMounted, setDeferredFaceMounted] = useState(false)
 
   const cancelIntroTiltCue = useCallback(() => {
     const cue = introTiltCueRef.current
     cue.active = false
     motionKicksRef.current.forEach((kick) => kick())
   }, [])
+
+  const noteUserInteraction = useCallback(() => {
+    userInteractedRef.current = true
+    cancelIntroTiltCue()
+  }, [cancelIntroTiltCue])
+
+  const markImageReady = useCallback((imageIndex) => {
+    readyImagesRef.current.add(imageIndex)
+    if (imageIndex === 0) setInitialLayerStatus('ready')
+    const pending = pendingFlipRef.current
+    if (pending?.targetIndex === imageIndex) {
+      pendingFlipRef.current = null
+      animateFlipRef.current?.(pending.targetIndex, pending.rotation)
+    }
+  }, [])
+
+  const markImageFailed = useCallback((imageIndex) => {
+    if (imageIndex === 0) setInitialLayerStatus('failed')
+  }, [])
+
+  useEffect(() => {
+    interactionRef.current = false
+    return () => {
+      interactionRef.current = false
+    }
+  }, [interactionRef])
+
+  useEffect(() => {
+    if (!posterReady || !mediaRevealAllowed) return undefined
+    const duration = prefersReducedMotion() ? 0 : HERO_POSTER_REVEAL_MS
+    const timer = window.setTimeout(() => setPosterRevealComplete(true), duration)
+    return () => window.clearTimeout(timer)
+  }, [mediaRevealAllowed, posterReady])
+
+  useEffect(() => {
+    if (initialLayerStatus !== 'ready' || !posterRevealComplete) return undefined
+    setLayersPrepared(true)
+  }, [initialLayerStatus, posterRevealComplete])
+
+  useEffect(() => {
+    if (!layersPrepared) return undefined
+    let firstPaintFrame = 0
+    let secondPaintFrame = 0
+
+    firstPaintFrame = requestAnimationFrame(() => {
+      secondPaintFrame = requestAnimationFrame(() => {
+        interactionRef.current = true
+        setHandoffStarted(true)
+      })
+    })
+
+    return () => {
+      cancelAnimationFrame(firstPaintFrame)
+      cancelAnimationFrame(secondPaintFrame)
+    }
+  }, [interactionRef, layersPrepared])
+
+  useEffect(() => {
+    if (!handoffStarted) return undefined
+    let firstStableFrame = 0
+    let secondStableFrame = 0
+    const duration = prefersReducedMotion() ? 0 : HERO_HANDOFF_MS
+    const timer = window.setTimeout(() => {
+      firstStableFrame = requestAnimationFrame(() => {
+        secondStableFrame = requestAnimationFrame(() => {
+          setHandoffComplete(true)
+        })
+      })
+    }, duration)
+
+    return () => {
+      window.clearTimeout(timer)
+      cancelAnimationFrame(firstStableFrame)
+      cancelAnimationFrame(secondStableFrame)
+    }
+  }, [handoffStarted])
+
+  useEffect(() => {
+    if (!handoffComplete) return undefined
+    const mountDeferredFace = () => setDeferredFaceMounted(true)
+    if (typeof window.requestIdleCallback === 'function') {
+      const idleId = window.requestIdleCallback(mountDeferredFace, { timeout: 1500 })
+      return () => window.cancelIdleCallback(idleId)
+    }
+    const timer = window.setTimeout(mountDeferredFace, DEFERRED_FACE_FALLBACK_MS)
+    return () => window.clearTimeout(timer)
+  }, [handoffComplete])
 
   const resetOrientation = useCallback(() => {
     const activity = orientationActivityRef.current
@@ -345,7 +471,12 @@ export default function HeroFlipGallery({
       orientationRef.current.available = true
       orientationRef.current.idle = false
       orientationPermissionRef.current = 'active'
-      if (introTiltCueRef.current.active) cancelIntroTiltCue()
+      if (
+        Math.max(Math.abs(deltaX), Math.abs(deltaY)) >=
+        ORIENTATION_STATIONARY_THRESHOLD_DEG
+      ) {
+        noteUserInteraction()
+      }
       motionKicksRef.current.forEach((kick) => kick())
     }
 
@@ -364,7 +495,7 @@ export default function HeroFlipGallery({
         ? 'awaiting-gesture'
         : 'listening'
     return true
-  }, [cancelIntroTiltCue, enterOrientationIdle, reducedMotion, resetOrientation])
+  }, [enterOrientationIdle, noteUserInteraction, reducedMotion, resetOrientation])
 
   const requestOrientationAccess = useCallback(() => {
     if (reducedMotion || prefersReducedMotion() || !canUseOrientation()) return
@@ -424,13 +555,13 @@ export default function HeroFlipGallery({
   }, [reducedMotion, resetOrientation])
 
   useEffect(() => {
-    if (!interactionReady || reducedMotion || prefersReducedMotion()) return
+    if (reducedMotion || prefersReducedMotion()) return
     if (!canUseOrientation()) {
       orientationPermissionRef.current = 'unsupported'
       return
     }
     startOrientationListening()
-  }, [interactionReady, reducedMotion, startOrientationListening])
+  }, [reducedMotion, startOrientationListening])
 
   const count = images.length
 
@@ -449,12 +580,12 @@ export default function HeroFlipGallery({
 
   const resetAutoplay = useCallback(() => {
     if (autoplayRef.current) clearInterval(autoplayRef.current)
-    if (prefersReducedMotion() || count <= 1) return
+    if (!handoffComplete || prefersReducedMotion() || count <= 1) return
 
     autoplayRef.current = window.setInterval(() => {
       if (!flippingRef.current) flipForwardRef.current?.()
     }, AUTOPLAY_MS)
-  }, [count])
+  }, [count, handoffComplete])
 
   const flipForwardRef = useRef(null)
 
@@ -494,11 +625,30 @@ export default function HeroFlipGallery({
     [wrap],
   )
 
+  animateFlipRef.current = animateFlip
+
+  const prepareFlip = useCallback((targetIndex, rotation) => {
+    if (readyImagesRef.current.has(targetIndex)) {
+      animateFlip(targetIndex, rotation)
+      return
+    }
+    pendingFlipRef.current = { targetIndex, rotation }
+    setDeferredFaceMounted(true)
+    if (visibleFaceRef.current === 'front') setBackIndex(targetIndex)
+    else setFrontIndex(targetIndex)
+  }, [animateFlip])
+
   const flipForward = useCallback(() => {
-    if (flippingRef.current || count <= 1) return
+    if (!handoffComplete || flippingRef.current || pendingFlipRef.current || count <= 1) return
     const next = wrap(index + 1)
 
     if (reducedMotion) {
+      if (!readyImagesRef.current.has(next)) {
+        setDeferredFaceMounted(true)
+        if (visibleFaceRef.current === 'front') setBackIndex(next)
+        else setFrontIndex(next)
+        return
+      }
       setIndex(next)
       if (visibleFaceRef.current === 'front') {
         setFrontIndex(next)
@@ -510,14 +660,20 @@ export default function HeroFlipGallery({
       return
     }
 
-    animateFlip(next, 180)
-  }, [animateFlip, count, index, reducedMotion, wrap])
+    prepareFlip(next, 180)
+  }, [count, handoffComplete, index, prepareFlip, reducedMotion, wrap])
 
   const flipBackward = useCallback(() => {
-    if (flippingRef.current || count <= 1) return
+    if (!handoffComplete || flippingRef.current || pendingFlipRef.current || count <= 1) return
     const prev = wrap(index - 1)
 
     if (reducedMotion) {
+      if (!readyImagesRef.current.has(prev)) {
+        setDeferredFaceMounted(true)
+        if (visibleFaceRef.current === 'front') setBackIndex(prev)
+        else setFrontIndex(prev)
+        return
+      }
       setIndex(prev)
       if (visibleFaceRef.current === 'front') {
         setFrontIndex(prev)
@@ -529,8 +685,8 @@ export default function HeroFlipGallery({
       return
     }
 
-    animateFlip(prev, -180)
-  }, [animateFlip, count, index, reducedMotion, wrap])
+    prepareFlip(prev, -180)
+  }, [count, handoffComplete, index, prepareFlip, reducedMotion, wrap])
 
   flipForwardRef.current = flipForward
 
@@ -654,11 +810,11 @@ export default function HeroFlipGallery({
     }
 
     const onMove = (e) => {
-      if (!interactionRef.current) return
       if (heroPointerRef.current.touching) return
-      if (introTiltCueRef.current.active) cancelIntroTiltCue()
       const rect = stage.getBoundingClientRect()
       const pointer = computeHeroPointer(e.clientX, e.clientY, rect)
+      if (pointer.influence > 0) noteUserInteraction()
+      if (!interactionRef.current) return
       heroPointerRef.current = pointer
 
       if (pointer.influence <= 0) {
@@ -696,14 +852,14 @@ export default function HeroFlipGallery({
       }
       motionKicksRef.current.delete(kick)
     }
-  }, [cancelIntroTiltCue])
+  }, [noteUserInteraction])
 
   useEffect(() => {
     const cue = introTiltCueRef.current
     const isMobileViewport = window.matchMedia('(max-width: 767px)').matches
 
     if (
-      !interactionReady ||
+      !handoffComplete ||
       cue.played ||
       reducedMotion ||
       prefersReducedMotion() ||
@@ -712,24 +868,32 @@ export default function HeroFlipGallery({
       return undefined
     }
 
-    cue.played = true
-    cue.active = true
-    cue.startedAt = performance.now()
-    cue.x = 0
-    cue.y = 0
-    motionKicksRef.current.forEach((kick) => kick())
+    const timer = window.setTimeout(() => {
+      cue.played = true
+      if (userInteractedRef.current) return
+      cue.active = true
+      cue.startedAt = performance.now()
+      cue.x = 0
+      cue.y = 0
+      motionKicksRef.current.forEach((kick) => kick())
+    }, HERO_INTRO_CUE_SETTLE_MS)
 
-    return cancelIntroTiltCue
-  }, [cancelIntroTiltCue, interactionReady, reducedMotion])
+    return () => {
+      window.clearTimeout(timer)
+      cancelIntroTiltCue()
+    }
+  }, [cancelIntroTiltCue, handoffComplete, reducedMotion])
 
   const onPointerDown = () => {
+    noteUserInteraction()
+    if (handoffComplete) setDeferredFaceMounted(true)
     if (!interactionRef.current) return
     requestOrientationAccess()
-    cancelIntroTiltCue()
     resetAutoplay()
   }
 
   const onClick = (e) => {
+    noteUserInteraction()
     if (!interactionRef.current) return
     resetAutoplay()
     const rect = e.currentTarget.getBoundingClientRect()
@@ -756,10 +920,11 @@ export default function HeroFlipGallery({
   }
 
   const onTouchStart = (e) => {
+    noteUserInteraction()
+    if (handoffComplete) setDeferredFaceMounted(true)
     if (!interactionRef.current) return
     const touch = e.touches[0]
     requestOrientationAccess()
-    cancelIntroTiltCue()
     touchBoundsRef.current = stageRef.current?.getBoundingClientRect() ?? null
     touchStartRef.current = touch
       ? { x: touch.clientX, y: touch.clientY }
@@ -808,6 +973,8 @@ export default function HeroFlipGallery({
 
   const front = images[frontIndex]
   const back = images[backIndex]
+  const poster = images[0]?.poster
+  const posterVisible = posterReady && mediaRevealAllowed
   const touchCapable = hasTouchInput()
 
   return (
@@ -825,10 +992,47 @@ export default function HeroFlipGallery({
       role="group"
       aria-roledescription="carousel"
       aria-label={`Hero photograph ${index + 1} of ${count}`}
+      data-hero-layer-status={initialLayerStatus}
+      data-hero-handoff={handoffComplete ? 'complete' : handoffStarted ? 'active' : 'poster'}
     >
+      {poster && (
+        <div
+          className={`hero-flip-poster pointer-events-none absolute inset-0 z-[2] overflow-hidden${
+            posterVisible ? ' is-visible' : ''
+          }${
+            handoffStarted ? ' is-handing-off' : ''
+          }${handoffComplete ? ' is-complete' : ''}`}
+          aria-hidden="true"
+        >
+          <ProtectedImage
+            src={poster.src}
+            srcSet={poster.srcSet}
+            sizes={poster.sizes}
+            width={poster.width}
+            height={poster.height}
+            alt=""
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            onLoad={async (event) => {
+              const imageElement = event.currentTarget
+              try {
+                await imageElement.decode()
+                setPosterReady(true)
+              } catch {
+                setPosterReady(false)
+              }
+            }}
+            onError={() => setPosterReady(false)}
+            className="absolute inset-0 h-full w-full scale-[1.04] object-cover object-center"
+          />
+        </div>
+      )}
       <div
         ref={tiltRef}
-        className="relative h-full w-full will-change-transform"
+        className={`hero-flip-layers relative z-[1] h-full w-full will-change-transform${
+          layersPrepared ? ' is-prepared' : ''
+        }`}
         style={{
           transformStyle: 'preserve-3d',
           WebkitTransformStyle: 'preserve-3d',
@@ -851,12 +1055,16 @@ export default function HeroFlipGallery({
             }}
           >
             <HeroSlide
+              key={front.id}
               image={front}
               stageRef={stageRef}
               orientationRef={orientationRef}
               motionKicksRef={motionKicksRef}
               interactionEnabledRef={interactionRef}
               heroPointerRef={heroPointerRef}
+              fetchPriority={frontIndex === 0 ? 'low' : 'auto'}
+              onReady={() => markImageReady(frontIndex)}
+              onError={() => markImageFailed(frontIndex)}
             />
           </div>
           <div
@@ -867,14 +1075,20 @@ export default function HeroFlipGallery({
               transform: 'rotateY(180deg)',
             }}
           >
-            <HeroSlide
-              image={back}
-              stageRef={stageRef}
-              orientationRef={orientationRef}
-              motionKicksRef={motionKicksRef}
-              interactionEnabledRef={interactionRef}
-              heroPointerRef={heroPointerRef}
-            />
+            {deferredFaceMounted && (
+              <HeroSlide
+                key={back.id}
+                image={back}
+                stageRef={stageRef}
+                orientationRef={orientationRef}
+                motionKicksRef={motionKicksRef}
+                interactionEnabledRef={interactionRef}
+                heroPointerRef={heroPointerRef}
+                fetchPriority="low"
+                onReady={() => markImageReady(backIndex)}
+                onError={() => markImageFailed(backIndex)}
+              />
+            )}
           </div>
         </div>
       </div>

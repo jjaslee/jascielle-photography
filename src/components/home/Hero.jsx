@@ -5,7 +5,7 @@ import { useLenisRef } from '../../context/LenisContext'
 import HeroFlipGallery from './HeroFlipGallery'
 import BarrelRollLabel from '../BarrelRollLabel'
 
-const HERO_INTRO_INTERACTION_MS = 1850
+const HERO_MEDIA_REVEAL_MS = 680
 const HERO_INTRO_COMPLETE_MS = 2100
 
 function shouldPlayHeroIntro() {
@@ -17,24 +17,23 @@ export default function Hero() {
   const lenisRef = useLenisRef()
   const scrollLinkRefs = useRef([])
   const playIntro = shouldPlayHeroIntro()
-  const interactionEnabledRef = useRef(!playIntro)
+  const interactionEnabledRef = useRef(false)
   const [introActive, setIntroActive] = useState(playIntro)
-  const [interactionReady, setInteractionReady] = useState(!playIntro)
+  const [mediaRevealAllowed, setMediaRevealAllowed] = useState(!playIntro)
 
   useEffect(() => {
     if (!introActive) return
 
-    const interactionTimer = window.setTimeout(() => {
-      interactionEnabledRef.current = true
-      setInteractionReady(true)
-    }, HERO_INTRO_INTERACTION_MS)
+    const mediaRevealTimer = window.setTimeout(() => {
+      setMediaRevealAllowed(true)
+    }, HERO_MEDIA_REVEAL_MS)
 
     const completeTimer = window.setTimeout(() => {
       setIntroActive(false)
     }, HERO_INTRO_COMPLETE_MS)
 
     return () => {
-      window.clearTimeout(interactionTimer)
+      window.clearTimeout(mediaRevealTimer)
       window.clearTimeout(completeTimer)
     }
   }, [introActive])
@@ -88,13 +87,11 @@ export default function Hero() {
           </p>
         </div>
 
-        <div
-          className={`hero-intro__photo w-full${interactionReady ? '' : ' pointer-events-none'}`}
-        >
+        <div className="hero-intro__photo w-full">
           <HeroFlipGallery
             images={heroImages}
             interactionEnabledRef={interactionEnabledRef}
-            interactionReady={interactionReady}
+            mediaRevealAllowed={mediaRevealAllowed}
           />
         </div>
 

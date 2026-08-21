@@ -1,7 +1,7 @@
 /**
  * Subtle pointer parallax for layered hero photographs.
  */
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import ProtectedImage from '../ProtectedImage'
 
 const LERP = 0.08
@@ -66,10 +66,34 @@ export default function HeroImageLayers({
   motionKicksRef,
   interactionEnabledRef,
   heroPointerRef,
+  fetchPriority = 'auto',
+  onReady,
+  onError,
 }) {
   const interactionRef = interactionEnabledRef ?? { current: true }
   const layerRefs = useRef([])
+  const decodedLayersRef = useRef(new Set())
+  const failedRef = useRef(false)
   const layerOrder = useMemo(() => getLayerOrder(layers), [layers])
+
+  const markLayerReady = useCallback(async (key, image) => {
+    if (failedRef.current || decodedLayersRef.current.has(key)) return
+    try {
+      await image.decode()
+    } catch {
+      failedRef.current = true
+      onError?.()
+      return
+    }
+    decodedLayersRef.current.add(key)
+    if (decodedLayersRef.current.size === layerOrder.length) onReady?.()
+  }, [layerOrder.length, onError, onReady])
+
+  const markLayerFailed = useCallback(() => {
+    if (failedRef.current) return
+    failedRef.current = true
+    onError?.()
+  }, [onError])
 
   useEffect(() => {
     const stage = stageRef?.current
@@ -151,24 +175,35 @@ export default function HeroImageLayers({
 
   return (
     <>
-      {layerOrder.map((key, i) => (
-        <div
-          key={key}
-          ref={(el) => {
-            layerRefs.current[i] = el
-          }}
-          className="absolute inset-0 will-change-transform"
-          style={{ transform: `scale(${EDGE_CROP_SCALE})` }}
-        >
-          <ProtectedImage
-            src={layers[key]}
-            alt={i === 0 ? alt : ''}
-            loading="eager"
-            decoding="async"
-            className="absolute inset-0 h-full w-full object-cover object-center"
-          />
-        </div>
-      ))}
+      {layerOrder.map((key, i) => {
+        const source = layers[key]
+        const asset = typeof source === 'string' ? { src: source } : source
+        return (
+          <div
+            key={key}
+            ref={(el) => {
+              layerRefs.current[i] = el
+            }}
+            className="absolute inset-0 will-change-transform"
+            style={{ transform: `scale(${EDGE_CROP_SCALE})` }}
+          >
+            <ProtectedImage
+              src={asset.src}
+              srcSet={asset.srcSet}
+              sizes={asset.sizes}
+              width={asset.width}
+              height={asset.height}
+              alt={i === 0 ? alt : ''}
+              loading="eager"
+              decoding="async"
+              fetchPriority={fetchPriority}
+              onLoad={(event) => markLayerReady(key, event.currentTarget)}
+              onError={markLayerFailed}
+              className="absolute inset-0 h-full w-full object-cover object-center"
+            />
+          </div>
+        )
+      })}
     </>
   )
 }

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "hero:generate-assets": "node scripts/generate-hero-assets.mjs",
     "photo:manage": "node scripts/photo-manager/cli.mjs manage",
     "photo:add": "node scripts/photo-manager/cli.mjs add",
     "photo:add-batch": "node scripts/photo-manager/cli.mjs add-batch",
