@@ -24,6 +24,7 @@ import { sourceDigest } from './images.mjs'
 import { publicPathForSrc } from './preview.mjs'
 import { commitFiles } from './transaction.mjs'
 import { validateCatalogState } from './validate.mjs'
+import { responsiveVariantWrites } from './responsive-images.mjs'
 
 function digestBuffer(buffer) {
   return createHash('sha256').update(buffer).digest('hex')
@@ -320,7 +321,15 @@ export async function buildBatchProposal({ drafts, state, config }) {
   const fileOverrides = new Map(
     preparedItems.map((item) => [item.photo.src, item.optimized.buffer]),
   )
-  const validation = await validateCatalogState(nextState, config, { fileOverrides })
+  const responsiveFileOverrides = new Map(
+    preparedItems.flatMap((item) =>
+      item.responsiveVariants.map((variant) => [variant.src, variant.buffer]),
+    ),
+  )
+  const validation = await validateCatalogState(nextState, config, {
+    fileOverrides,
+    responsiveFileOverrides,
+  })
   if (!validation.valid) {
     throw new Error(
       `Proposed batch is invalid:\n${validation.errors.map((issue) => `${issue.subject}: ${issue.message}`).join('\n')}`,
@@ -338,6 +347,9 @@ export async function commitBatchProposal(proposal, currentState, config, option
         content: item.optimized.buffer,
         mustNotExist: true,
       })),
+      ...proposal.items.flatMap((item) =>
+        responsiveVariantWrites(item.responsiveVariants),
+      ),
       ...manifestWrites(config, currentState, proposal.nextState),
       ...additionalWrites,
     ],

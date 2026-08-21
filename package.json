@@ -14,6 +14,7 @@
     "photo:edit": "node scripts/photo-manager/cli.mjs edit",
     "photo:audit": "node scripts/photo-manager/cli.mjs audit",
     "photo:validate": "node scripts/photo-manager/cli.mjs validate",
+    "photo:generate-responsive": "node scripts/photo-manager/cli.mjs generate-responsive",
     "photo:verify-migration": "node scripts/photo-manager/verify-migration.mjs",
     "photo:test": "node --test scripts/photo-manager/test/*.test.mjs"
   },

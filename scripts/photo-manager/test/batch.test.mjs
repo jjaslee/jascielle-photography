@@ -18,6 +18,7 @@ import {
   DEFAULT_VISUAL_ANALYSIS_MODEL,
 } from '../visual-analysis.mjs'
 import { jpegBuffer, createFixture, snapshotTree, validPhoto } from './helpers.mjs'
+import { responsiveVariantsForPhoto } from '../../../src/data/responsiveImages.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -99,6 +100,22 @@ test('folder input discovers supported photos recursively and ignores macOS junk
     ])
   } finally {
     await staged.cleanup()
+  }
+})
+
+test('a future batch import writes responsive gallery variants', async () => {
+  const fixture = await createFixture()
+  await writeFile(fixture.sourcePath, await jpegBuffer(800, 1200))
+  const result = await muted(() =>
+    runBatchWorkflow(path.dirname(fixture.sourcePath), fixture.config, {
+      analyze: async () => ({ photos: [modelPhoto()] }),
+      reviewAction: async () => 'apply',
+    }),
+  )
+
+  assert.equal(result.status, 'batch-added')
+  for (const variant of responsiveVariantsForPhoto(result.proposal.items[0].photo)) {
+    await access(path.join(fixture.config.publicDir, variant.src.slice(1)))
   }
 })
 

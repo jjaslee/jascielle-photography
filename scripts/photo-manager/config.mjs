@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { catalogDefinitions } from '../../src/data/photoSchema.js'
+import { RESPONSIVE_IMAGE_LONG_EDGES } from '../../src/data/responsiveImages.js'
 
 export const projectRoot = path.resolve(import.meta.dirname, '../..')
 
@@ -12,6 +13,7 @@ export function createConfig(rootDir = projectRoot) {
     proposalDir: path.join(rootDir, '.photo-manager/proposals'),
     placementsPath: path.join(manifestDir, 'sitePlacements.json'),
     maxLongEdge: 2200,
+    responsiveLongEdges: RESPONSIVE_IMAGE_LONG_EDGES,
     jpegQuality: 82,
     largeFileWarningBytes: 900 * 1024,
     supportedExtensions: ['.jpg', '.jpeg', '.png', '.webp'],

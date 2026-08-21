@@ -12,6 +12,7 @@ import {
 } from './catalog.mjs'
 import { intrinsicImageInfo } from './images.mjs'
 import { publicPathForSrc } from './preview.mjs'
+import { validateResponsiveVariants } from './responsive-images.mjs'
 
 function addIssue(target, code, subject, message, extra = {}) {
   target.push({ code, subject, message, ...extra })
@@ -163,6 +164,14 @@ export async function validateCatalogState(state, config, options = {}) {
           index,
         })
       }
+    }
+
+    if (options.checkResponsive !== false) {
+      errors.push(
+        ...(await validateResponsiveVariants(entries, config, {
+          fileOverrides: options.responsiveFileOverrides,
+        })),
+      )
     }
   }
 

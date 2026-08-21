@@ -6,6 +6,7 @@ import sharp from 'sharp'
 import { buildAddProposal, commitAddProposal, outputTarget } from '../add.mjs'
 import { loadCatalogState } from '../catalog.mjs'
 import { inspectImage, intrinsicImageInfo, optimizeImage, sourceDigest } from '../images.mjs'
+import { responsiveVariantsForPhoto } from '../../../src/data/responsiveImages.js'
 import { createFixture, snapshotTree } from './helpers.mjs'
 
 const classification = { major: 'places', section: 'street' }
@@ -73,6 +74,42 @@ test('a confirmed fixture import writes an optimized image and ordered manifest 
     { width: 80, height: 60, format: 'jpeg' },
   )
   assert.equal(await sourceDigest(fixture.sourcePath), sourceBefore)
+})
+
+test('a future single-photo import writes its responsive gallery variants', async () => {
+  const fixture = await createFixture()
+  await writeFile(fixture.sourcePath, await sharp({
+    create: { width: 800, height: 1200, channels: 3, background: '#557799' },
+  }).jpeg().toBuffer())
+  const inspection = await inspectImage(fixture.sourcePath, fixture.config)
+  const proposal = await buildAddProposal({
+    ...fixture,
+    sourcePath: fixture.sourcePath,
+    inspection,
+    classification,
+    alt: 'Large fixture street photograph',
+    location: null,
+    year: null,
+    placement: { type: 'end' },
+  })
+
+  await commitAddProposal(proposal, fixture.state, fixture.config)
+  assert.deepEqual(
+    proposal.responsiveVariants.map(({ width, height }) => ({ width, height })),
+    [
+      { width: 427, height: 640 },
+      { width: 640, height: 960 },
+    ],
+  )
+  for (const variant of responsiveVariantsForPhoto(proposal.photo)) {
+    const output = await intrinsicImageInfo(
+      path.join(fixture.config.publicDir, variant.src.slice(1)),
+    )
+    assert.deepEqual(
+      { width: output.width, height: output.height, format: output.format },
+      { width: variant.width, height: variant.height, format: 'jpeg' },
+    )
+  }
 })
 
 test('an output collision never overwrites an existing file', async () => {

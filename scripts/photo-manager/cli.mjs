@@ -9,6 +9,7 @@ import { photoManagerConfig } from './config.mjs'
 import { heading } from './format.mjs'
 import { confirmBuild } from './prompts.mjs'
 import { runValidationCommand } from './validate.mjs'
+import { runResponsiveGeneration } from './generate-responsive.mjs'
 
 function parseArguments(argv) {
   const dryRun = argv.includes('--dry-run')
@@ -129,6 +130,9 @@ async function main() {
     return 0
   }
   if (command === 'validate') return runValidationCommand(photoManagerConfig)
+  if (command === 'generate-responsive') {
+    return runResponsiveGeneration(photoManagerConfig)
+  }
   console.error(`Unknown photo manager command: ${command}`)
   return 1
 }

@@ -17,6 +17,10 @@ import {
 import { promptClassification } from './classify.mjs'
 import { formatBytes, heading, valueLabel } from './format.mjs'
 import { inspectImage, optimizeImage } from './images.mjs'
+import {
+  buildResponsiveVariants,
+  responsiveVariantWrites,
+} from './responsive-images.mjs'
 import { resolveUserPath } from './paths.mjs'
 import {
   BACK,
@@ -98,6 +102,11 @@ export async function preparePhotoImport({
   if (year !== undefined) photo.year = year
   const recordErrors = validatePhotoRecord(mapped.catalog, photo)
   if (recordErrors.length) throw new Error(recordErrors.join('; '))
+  const responsiveVariants = await buildResponsiveVariants(
+    optimized.buffer,
+    photo,
+    config,
+  )
 
   return {
     sourcePath,
@@ -109,6 +118,7 @@ export async function preparePhotoImport({
     optionalPlacements,
     outputPath: target.outputPath,
     optimized,
+    responsiveVariants,
   }
 }
 
@@ -126,6 +136,9 @@ export async function buildAddProposal(options) {
   )
   const validation = await validateCatalogState(nextState, config, {
     fileOverrides: new Map([[prepared.photo.src, prepared.optimized.buffer]]),
+    responsiveFileOverrides: new Map(
+      prepared.responsiveVariants.map((variant) => [variant.src, variant.buffer]),
+    ),
   })
   if (!validation.valid) {
     throw new Error(`Proposed catalog is invalid:\n${validation.errors.map((issue) => `${issue.subject}: ${issue.message}`).join('\n')}`)
@@ -147,6 +160,7 @@ export async function commitAddProposal(proposal, currentState, config, options 
         content: proposal.optimized.buffer,
         mustNotExist: true,
       },
+      ...responsiveVariantWrites(proposal.responsiveVariants),
       ...writes,
     ],
     options,

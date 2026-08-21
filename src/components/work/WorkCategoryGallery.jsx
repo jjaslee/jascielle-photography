@@ -14,6 +14,7 @@ import BlindExitLink from '../BlindExitLink'
 import WorkImageLightbox from './WorkImageLightbox'
 import { scrollToTop, useLenisRef } from '../../context/LenisContext'
 import { getWorkCategoryPage } from '../../data/workCategories'
+import { responsiveImageSrcSet } from '../../data/responsiveImages'
 import { protectedGalleryHandlers } from '../../utils/imageProtection'
 
 const GAP = 20
@@ -39,7 +40,8 @@ const TOUCH_MOMENTUM_PROJECTION_MS = 220
 const TOUCH_MOMENTUM_MAX_RATIO = 0.4
 const TOUCH_MOMENTUM_MAX_DISTANCE = 360
 const ABOUT_EXIT_MS = 360
-const INITIAL_EDGE_COUNT = 12
+const MOBILE_PRELOAD_VIEWPORTS = 1
+const MOBILE_TRANSITION_PRELOAD_COUNT = 6
 const SECTION_GAP = GAP
 const MOBILE_GALLERY_QUERY =
   '(max-width: 768px), (orientation: landscape) and (max-height: 600px) and (max-width: 1024px)'
@@ -160,10 +162,27 @@ function imageLayout(image) {
   }
 }
 
-function preloadImage(image) {
+function mobileImageScale(image) {
+  const aspectRatio =
+    image.width && image.height ? image.width / image.height : 1
+  return aspectRatio > 1.15
+    ? MOBILE_IMAGE_SCALE.landscape
+    : aspectRatio >= 0.85
+      ? MOBILE_IMAGE_SCALE.square
+      : MOBILE_IMAGE_SCALE.portrait
+}
+
+function galleryImageSizes(image, desktopWidth = imageLayout(image).w) {
+  const mobileWidth = Number((45 * mobileImageScale(image)).toFixed(1))
+  return `(max-width: 768px) ${mobileWidth}vw, (orientation: landscape) and (max-height: 600px) and (max-width: 1024px) ${mobileWidth}vw, ${Math.ceil(desktopWidth)}px`
+}
+
+function preloadImage(image, options = {}) {
   if (!image?.src || typeof Image === 'undefined') return Promise.resolve()
-  if (decodedSources.has(image.src)) return Promise.resolve()
-  if (preloadPromises.has(image.src)) return preloadPromises.get(image.src)
+  const fullSize = options.fullSize === true
+  const preloadKey = `${fullSize ? 'full' : 'gallery'}:${image.src}`
+  if (!fullSize && decodedSources.has(image.src)) return Promise.resolve()
+  if (preloadPromises.has(preloadKey)) return preloadPromises.get(preloadKey)
 
   const promise = new Promise((resolve) => {
     const preload = new Image()
@@ -171,26 +190,41 @@ function preloadImage(image) {
     preload.onload = async () => {
       try {
         await preload.decode()
-        decodedSources.add(image.src)
+        if (!fullSize) decodedSources.add(image.src)
       } catch {
         // The mounted image can still retry decoding before reveal.
       }
       resolve()
     }
     preload.onerror = resolve
+    if (!fullSize) {
+      preload.srcset = responsiveImageSrcSet(image)
+      preload.sizes = galleryImageSizes(image)
+    }
     preload.src = image.src
   })
 
-  preloadPromises.set(image.src, promise)
+  preloadPromises.set(preloadKey, promise)
   return promise
 }
 
-function categoryEdgeImages(category, edge) {
+function categoryEdgeImages(category, edge, viewportWidth, mobile = false) {
   if (!category) return []
   const images = category.sections.flatMap((section) => section.images)
-  return edge === 'end'
-    ? images.slice(-INITIAL_EDGE_COUNT)
-    : images.slice(0, INITIAL_EDGE_COUNT)
+  if (mobile) {
+    return edge === 'end'
+      ? images.slice(-MOBILE_TRANSITION_PRELOAD_COUNT)
+      : images.slice(0, MOBILE_TRANSITION_PRELOAD_COUNT)
+  }
+
+  const { flat, width } = buildTrack(category.sections, SECTION_GAP)
+  const boundedViewport = Math.max(1, viewportWidth || window.innerWidth)
+  const position = edge === 'end' ? Math.max(0, width - boundedViewport) : 0
+  const rangeEnd = position + boundedViewport
+  return flat.filter(
+    (image) =>
+      image.trackX + image.layoutWidth >= position && image.trackX <= rangeEnd,
+  )
 }
 
 function sectionGapForViewport() {
@@ -291,14 +325,7 @@ function buildMobileColumns(images) {
   const projectedHeights = [0, 0]
 
   images.forEach((image) => {
-    const aspectRatio =
-      image.width && image.height ? image.width / image.height : 1
-    const widthScale =
-      aspectRatio > 1.15
-        ? MOBILE_IMAGE_SCALE.landscape
-        : aspectRatio >= 0.85
-          ? MOBILE_IMAGE_SCALE.square
-          : MOBILE_IMAGE_SCALE.portrait
+    const widthScale = mobileImageScale(image)
     const columnIndex =
       projectedHeights[0] <= projectedHeights[1] ? 0 : 1
     columns[columnIndex].push({ ...image, mobileWidthScale: widthScale })
@@ -354,6 +381,8 @@ function GalleryImage({ image, requested, priority, onInspect }) {
   return (
     <ProtectedImage
       src={requested ? image.src : undefined}
+      srcSet={requested ? responsiveImageSrcSet(image) : undefined}
+      sizes={requested ? galleryImageSizes(image, image.layoutWidth) : undefined}
       alt={image.alt}
       width={image.width}
       height={image.height}
@@ -362,11 +391,11 @@ function GalleryImage({ image, requested, priority, onInspect }) {
       decoding="async"
       draggable={false}
       role="button"
-      tabIndex={requested && ready ? 0 : -1}
+      tabIndex={requested ? 0 : -1}
       aria-label={`Inspect photograph: ${image.alt}`}
       aria-haspopup="dialog"
       onClick={(event) => {
-        if (requested && ready) onInspect(image, event.currentTarget)
+        if (requested) onInspect(image, event.currentTarget)
       }}
       onKeyDown={(event) => openImageFromKeyboard(event, image, onInspect)}
       onLoad={handleLoad}
@@ -374,6 +403,74 @@ function GalleryImage({ image, requested, priority, onInspect }) {
         requested && ready ? ' is-ready' : ''
       }`}
       style={{ width: image.layoutWidth, height: image.layoutHeight }}
+      {...protectedGalleryHandlers}
+    />
+  )
+}
+
+function MobileGalleryImage({ image, requested, priority, onInspect }) {
+  const mountedRef = useRef(true)
+  const revealTimerRef = useRef(0)
+  const [ready, setReady] = useState(() => decodedSources.has(image.src))
+
+  useEffect(() => {
+    if (requested && decodedSources.has(image.src)) setReady(true)
+  }, [image.src, requested])
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      window.clearTimeout(revealTimerRef.current)
+    }
+  }, [])
+
+  const handleLoad = async (event) => {
+    const node = event.currentTarget
+    const reveal = () => {
+      decodedSources.add(image.src)
+      if (mountedRef.current) setReady(true)
+    }
+
+    revealTimerRef.current = window.setTimeout(reveal, 120)
+    try {
+      await node.decode()
+    } catch {
+      // A completed load is still safe to reveal if decode() is unavailable.
+    }
+    window.clearTimeout(revealTimerRef.current)
+    reveal()
+  }
+
+  return (
+    <ProtectedImage
+      src={requested ? image.src : undefined}
+      srcSet={requested ? responsiveImageSrcSet(image) : undefined}
+      sizes={requested ? galleryImageSizes(image) : undefined}
+      alt={image.alt}
+      width={image.width}
+      height={image.height}
+      loading={requested ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
+      decoding="async"
+      draggable={false}
+      role="button"
+      tabIndex={requested ? 0 : -1}
+      aria-label={`Inspect photograph: ${image.alt}`}
+      aria-haspopup="dialog"
+      onClick={(event) => {
+        if (requested) onInspect(image, event.currentTarget)
+      }}
+      onKeyDown={(event) => openImageFromKeyboard(event, image, onInspect)}
+      onLoad={handleLoad}
+      className={`work-gallery-img work-gallery-inspectable block h-auto w-full${
+        requested && ready ? ' is-ready' : ''
+      }`}
+      style={
+        image.width && image.height
+          ? { aspectRatio: `${image.width} / ${image.height}` }
+          : undefined
+      }
       {...protectedGalleryHandlers}
     />
   )
@@ -496,6 +593,7 @@ function WorkCategoryGalleryScroll({
   const lenisRef = useLenisRef()
   const viewportRef = useRef(null)
   const trackRef = useRef(null)
+  const viewportWidthRef = useRef(0)
   const maxScrollRef = useRef(0)
   const sectionStartsRef = useRef({})
   const translateRef = useRef(0)
@@ -522,18 +620,11 @@ function WorkCategoryGalleryScroll({
     () => buildTrack(category.sections, sectionGap),
     [category.sections, sectionGap],
   )
-  const initialEdgeSources = useMemo(() => {
-    const edgeImages = startsAtEnd
-      ? flat.slice(-INITIAL_EDGE_COUNT)
-      : flat.slice(0, INITIAL_EDGE_COUNT)
-    return new Set(edgeImages.map((image) => image.src))
-  }, [flat, startsAtEnd])
-  const requestedSourcesRef = useRef(initialEdgeSources)
-  const prioritySourcesRef = useRef(initialEdgeSources)
+  const requestedSourcesRef = useRef(new Set())
 
   const [translateX, setTranslateX] = useState(0)
   const [footerH, setFooterH] = useState(72)
-  const [requestedSources, setRequestedSources] = useState(initialEdgeSources)
+  const [requestedSources, setRequestedSources] = useState(() => new Set())
   const [activeSection, setActiveSection] = useState(
     startsAtEnd ? lastSectionId : firstSectionId,
   )
@@ -570,6 +661,7 @@ function WorkCategoryGalleryScroll({
     if (footer) setFooterH(footer.offsetHeight)
 
     const innerWidth = viewport.clientWidth
+    viewportWidthRef.current = innerWidth
     const maxScroll = Math.max(0, trackWidth - innerWidth)
     const previousMax = maxScrollRef.current
     const keepAtEnd =
@@ -601,19 +693,6 @@ function WorkCategoryGalleryScroll({
   useLayoutEffect(() => {
     remeasure()
   }, [remeasure])
-
-  useEffect(() => {
-    const adjacentImages = [
-      { nav: category.previous, edge: 'end' },
-      { nav: category.next, edge: 'start' },
-    ].flatMap(({ nav, edge }) => {
-      const adjacentId = nav?.to.split('/').pop()
-      const adjacentCategory = getWorkCategoryPage(adjacentId)
-      return categoryEdgeImages(adjacentCategory, edge)
-    })
-
-    adjacentImages.forEach(preloadImage)
-  }, [category.next, category.previous])
 
   useEffect(() => {
     const onResize = () => {
@@ -660,7 +739,6 @@ function WorkCategoryGalleryScroll({
       if (Math.abs(tgt - cur) > 0.05) {
         translateRef.current = next
         setTranslateX(next)
-        requestNearby(next)
       } else if (cur !== tgt) {
         translateRef.current = tgt
         setTranslateX(tgt)
@@ -865,11 +943,13 @@ function WorkCategoryGalleryScroll({
   const scrollToSection = useCallback((sectionId) => {
     const startX = sectionStartsRef.current[sectionId] ?? 0
     touchMomentumRef.current = false
-    targetRef.current = Math.min(
+    const next = Math.min(
       maxScrollRef.current,
       Math.max(0, startX),
     )
-  }, [])
+    targetRef.current = next
+    requestNearby(next)
+  }, [requestNearby])
 
   const navigateCategory = useCallback((nav, dir) => {
     if (
@@ -891,6 +971,7 @@ function WorkCategoryGalleryScroll({
     categoryEdgeImages(
       destination,
       direction === 'forward' ? 'start' : 'end',
+      viewportRef.current?.clientWidth ?? window.innerWidth,
     ).forEach(preloadImage)
     const routeState = {
       categoryTransition: direction,
@@ -991,7 +1072,11 @@ function WorkCategoryGalleryScroll({
                       key={img.src}
                       image={img}
                       requested={requestedSources.has(img.src)}
-                      priority={prioritySourcesRef.current.has(img.src)}
+                      priority={
+                        requestedSources.has(img.src) &&
+                        img.trackX + img.layoutWidth >= translateX &&
+                        img.trackX <= translateX + viewportWidthRef.current
+                      }
                       onInspect={onInspect}
                     />
                   ))}
@@ -1013,7 +1098,11 @@ function WorkCategoryGalleryScroll({
                       key={img.src}
                       image={img}
                       requested={requestedSources.has(img.src)}
-                      priority={prioritySourcesRef.current.has(img.src)}
+                      priority={
+                        requestedSources.has(img.src) &&
+                        img.trackX + img.layoutWidth >= translateX &&
+                        img.trackX <= translateX + viewportWidthRef.current
+                      }
                       onInspect={onInspect}
                     />
                   ))}
@@ -1082,6 +1171,9 @@ function WorkCategoryGalleryMobile({ category, onInspect, onExitToAbout }) {
   const [activeSectionId, setActiveSectionId] = useState(
     startsAtEnd ? lastSectionId : firstSectionId,
   )
+  const requestedSourcesRef = useRef(new Set())
+  const [requestedSources, setRequestedSources] = useState(() => new Set())
+  const [prioritySources, setPrioritySources] = useState(() => new Set())
   const mobileColumns = useMemo(
     () =>
       buildMobileColumns(
@@ -1095,6 +1187,84 @@ function WorkCategoryGalleryMobile({ category, onInspect, onExitToAbout }) {
       ),
     [category.sections],
   )
+
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+    const items = [...scroller.querySelectorAll('[data-work-gallery-source]')]
+
+    if (typeof IntersectionObserver === 'undefined') {
+      const allSources = new Set(
+        items.map((item) => item.dataset.workGallerySource).filter(Boolean),
+      )
+      requestedSourcesRef.current = allSources
+      setRequestedSources(allSources)
+      return
+    }
+
+    let observer
+    const observeWindow = () => {
+      observer?.disconnect()
+      const preloadMargin = Math.max(
+        1,
+        Math.round(scroller.clientHeight * MOBILE_PRELOAD_VIEWPORTS),
+      )
+      observer = new IntersectionObserver(
+        (entries) => {
+          let nextSources = null
+          let nextPriorities = null
+          const rootRect = scroller.getBoundingClientRect()
+
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue
+            const src = entry.target.dataset.workGallerySource
+            if (!src || requestedSourcesRef.current.has(src)) {
+              observer.unobserve(entry.target)
+              continue
+            }
+            if (!nextSources) nextSources = new Set(requestedSourcesRef.current)
+            nextSources.add(src)
+            if (
+              entry.boundingClientRect.bottom >= rootRect.top &&
+              entry.boundingClientRect.top <= rootRect.bottom
+            ) {
+              if (!nextPriorities) nextPriorities = new Set()
+              nextPriorities.add(src)
+            }
+            observer.unobserve(entry.target)
+          }
+
+          if (nextSources) {
+            requestedSourcesRef.current = nextSources
+            setRequestedSources(nextSources)
+          }
+          if (nextPriorities) {
+            setPrioritySources((current) =>
+              new Set([...current, ...nextPriorities]),
+            )
+          }
+        },
+        {
+          root: scroller,
+          rootMargin: `${preloadMargin}px 0px`,
+          threshold: 0,
+        },
+      )
+
+      items.forEach((item) => {
+        const src = item.dataset.workGallerySource
+        if (src && !requestedSourcesRef.current.has(src)) observer.observe(item)
+      })
+    }
+
+    observeWindow()
+    const resizeObserver = new ResizeObserver(observeWindow)
+    resizeObserver.observe(scroller)
+    return () => {
+      observer?.disconnect()
+      resizeObserver.disconnect()
+    }
+  }, [category.id, mobileColumns])
 
   useLayoutEffect(() => {
     const reset = () => {
@@ -1209,6 +1379,8 @@ function WorkCategoryGalleryMobile({ category, onInspect, onExitToAbout }) {
     categoryEdgeImages(
       destination,
       transitionDirection === 'forward' ? 'start' : 'end',
+      scrollerRef.current?.clientWidth ?? window.innerWidth,
+      true,
     ).forEach(preloadImage)
 
     const commitNavigation = () => {
@@ -1299,6 +1471,7 @@ function WorkCategoryGalleryMobile({ category, onInspect, onExitToAbout }) {
                     {column.map((img) => (
                       <li
                         key={img.src}
+                        data-work-gallery-source={img.src}
                         ref={
                           img.mobileSectionStart
                             ? (element) => {
@@ -1317,33 +1490,11 @@ function WorkCategoryGalleryMobile({ category, onInspect, onExitToAbout }) {
                           width: `${img.mobileWidthScale * 100}%`,
                         }}
                       >
-                        <ProtectedImage
-                          src={img.src}
-                          alt={img.alt}
-                          width={img.width}
-                          height={img.height}
-                          loading="lazy"
-                          decoding="async"
-                          draggable={false}
-                          role="button"
-                          tabIndex="0"
-                          aria-label={`Inspect photograph: ${img.alt}`}
-                          aria-haspopup="dialog"
-                          onClick={(event) =>
-                            onInspect(img, event.currentTarget)
-                          }
-                          onKeyDown={(event) =>
-                            openImageFromKeyboard(event, img, onInspect)
-                          }
-                          className="work-gallery-inspectable block h-auto w-full"
-                          style={
-                            img.width && img.height
-                              ? {
-                                  aspectRatio: `${img.width} / ${img.height}`,
-                                }
-                              : undefined
-                          }
-                          {...protectedGalleryHandlers}
+                        <MobileGalleryImage
+                          image={img}
+                          requested={requestedSources.has(img.src)}
+                          priority={prioritySources.has(img.src)}
+                          onInspect={onInspect}
                         />
                       </li>
                     ))}
@@ -1405,7 +1556,11 @@ function WorkCategoryGalleryStatic({ category, onInspect, onExitToAbout }) {
                 <li key={img.src}>
                   <ProtectedImage
                     src={img.src}
+                    srcSet={responsiveImageSrcSet(img)}
+                    sizes={galleryImageSizes(img)}
                     alt={img.alt}
+                    width={img.width}
+                    height={img.height}
                     loading="lazy"
                     decoding="async"
                     role="button"
@@ -1485,7 +1640,7 @@ export default function WorkCategoryGallery({ category }) {
   const inspectImage = useCallback((image, sourceElement) => {
     const scrollElement = sourceElement.closest('.work-gallery-mobile-scroller')
     document.documentElement.dataset.workLightboxOpen = ''
-    preloadImage(image)
+    preloadImage(image, { fullSize: true })
     setInspectedImage({
       image,
       sourceElement,
