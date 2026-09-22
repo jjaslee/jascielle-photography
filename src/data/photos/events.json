@@ -43,5 +43,68 @@
     "height": 1600,
     "location": "Hope Sports Complex, Michigan",
     "year": 2026
+  },
+  {
+    "src": "/images/events/IMG_6109.jpg",
+    "alt": "A Chick-fil-A cow mascot waves to children at an outdoor festival.",
+    "width": 1467,
+    "height": 2200,
+    "category": "balloon-festival",
+    "location": "Plano, Texas",
+    "year": 2026
+  },
+  {
+    "src": "/images/events/IMG_6182.jpg",
+    "alt": "Red and green hot-air balloons stand over a crowded festival field.",
+    "width": 2200,
+    "height": 1467,
+    "category": "balloon-festival",
+    "location": "Plano Balloon Festival, Texas",
+    "year": 2026
+  },
+  {
+    "src": "/images/events/IMG_6221.jpg",
+    "alt": "A large red Chick-fil-A hot-air balloon rises above festivalgoers.",
+    "width": 1467,
+    "height": 2200,
+    "category": "balloon-festival",
+    "location": "Plano Balloon Festival, Texas",
+    "year": 2026
+  },
+  {
+    "src": "/images/events/IMG_6206.jpg",
+    "alt": "A Chick-fil-A hot-air balloon burner sends a bright flame into the red envelope.",
+    "width": 1467,
+    "height": 2200,
+    "category": "balloon-festival",
+    "location": "Plano Balloon Festival, Texas",
+    "year": 2026
+  },
+  {
+    "src": "/images/events/IMG_6211.jpg",
+    "alt": "Flames flare inside the red fabric of a hot-air balloon.",
+    "width": 1467,
+    "height": 2200,
+    "category": "balloon-festival",
+    "location": "Plano Balloon Festival, Texas",
+    "year": 2026
+  },
+  {
+    "src": "/images/events/IMG_6167.jpg",
+    "alt": "A multicolored hot-air balloon floats overhead against a clear blue sky.",
+    "width": 1467,
+    "height": 2200,
+    "category": "balloon-festival",
+    "location": "Plano, Texas",
+    "year": 2026
+  },
+  {
+    "src": "/images/events/IMG_6152.jpg",
+    "alt": "Two hot-air balloons float above trees in a clear evening sky.",
+    "width": 1467,
+    "height": 2200,
+    "category": "balloon-festival",
+    "location": "Plano, Texas",
+    "year": 2026
   }
 ]

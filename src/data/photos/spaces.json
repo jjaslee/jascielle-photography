@@ -7,5 +7,23 @@
     "section": "interiors",
     "location": "Tai Kwun, Hong Kong",
     "year": 2024
+  },
+  {
+    "src": "/images/spaces/IMG_6070.jpg",
+    "alt": "Dimly lit traditional sitting room with armchairs, piano, framed portraits, mirrors, and glowing table lamps.",
+    "width": 1546,
+    "height": 2200,
+    "section": "interiors",
+    "location": "DeGolyer House, Dallas",
+    "year": 2026
+  },
+  {
+    "src": "/images/spaces/IMG_6086.jpg",
+    "alt": "Formal garden with tiered stone fountains, clipped hedges, and a blue sky.",
+    "width": 2200,
+    "height": 1337,
+    "section": "real-estate",
+    "year": 2026,
+    "location": "Dallas, Texas"
   }
 ]
